@@ -1,4 +1,5 @@
-function [lambda_next] = UpdateLambda( A, lambda, LB, UB, x_lagrange, rho )
+
+function [lambda_next] = ComputeNextLambda( A, lambda, LB, UB, x_lagrange, rho )
 %Calculates the next lambda that needs to be used
 %A: adjacency matrix A of the instance,
 %lambda: vector of Lagrangian multipliers,
@@ -6,10 +7,9 @@ function [lambda_next] = UpdateLambda( A, lambda, LB, UB, x_lagrange, rho )
 %UB: upper bound on the optimal primal objective value z*,
 %x_lagrange: optimal solution of the Lagrangian relaxation for lambda,
 %rho: sclaing factor to be used in the subgradient step, refer to pages
-%36-38: of the slides on relaxation and excersise 7 in set 3,
+
 %lambda_next: new vector of lagrangian multipliers, constructed by applying
-%the subgradient step, refer to pages 36-38 of the slides on Relaxations
-%and Exercise 7 in step 3.
+%the subgradient step
 
 m = length(A(:,1));
 vectorWithOnes = ones(m,1);
@@ -26,4 +26,4 @@ else
         end
     end
 end
-
+end
