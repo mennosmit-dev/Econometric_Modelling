@@ -91,15 +91,4 @@ for j = 1:n % For loop that calculates lagrange optimal objective value
 end
 end
 
-function [ LB_best, UB_best, x_best, LB_list, UB_list ] = PerformSubgradientOptimization( c, A, lambda_init, rho_init, k )
-%Functions as a lagrangian subgradient optimisation algorithm
-%c: cost vector c of the instance,
-%A: adjacency matrix A of the instance,
-%lambda_init: initial vector of Lagrangian multipliers to be used,
-%rho_init: initial scaling factor rho to be used in the subgradient step
-%k: (stricly positive) number of subgradient iterations to perform,
-%LB_best: best found lower bound on the optimal primal objective value z*,
-%UB_best: best found upper bound on the optimal primal objective value z*,
-%x_best: best found primal f
-
 
