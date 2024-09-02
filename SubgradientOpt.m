@@ -1,4 +1,4 @@
-function [ LB_best, UB_best, x_best, LB_list, UB_list ] = SubgradientOpt( c, A, lambda_init, rho_init, k )
+function [ LB_best, UB_best, x_best, LB_list, UB_list ] = PerformSubgradientOptimization( c, A, lambda_init, rho_init, k )
 %Functions as a lagrangian subgradient optimisation algorithm
 %c: cost vector c of the instance,
 %A: adjacency matrix A of the instance,
@@ -19,14 +19,14 @@ UB_list = zeros(k,1);
 noBestYet = true;
 
 for h = 1:k
-    [LB, x_lagrange] = Lagrangian(c,A, lambda);
-    [UB , x_feas] = InfeasToFeas(c, A, x_lagrange);
+    [LB, x_lagrange] = CalculateLagrangian(c, A, lambda);
+    [UB, x_feas] = ConvertInfeasToFeas(c, A, x_lagrange);
     LB_list(h) = LB;
     UB_list(h) = UB;
     if h == 1
         UB_best = UB;
     end
-    lambda = UpdateLambda(A, lambda, LB, UB_best, x_lagrange, rho_init/k);
+    lambda = ComputeNextLambda(A, lambda, LB, UB_best, x_lagrange, rho_init/k);
     if noBestYet == false
         if LB > LB_best
             LB_best = LB;
@@ -41,4 +41,4 @@ for h = 1:k
         noBestYet = false;
     end
 end
-
+end
