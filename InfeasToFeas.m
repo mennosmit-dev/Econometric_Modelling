@@ -1,0 +1,69 @@
+function [ obj_feas, x_feas ] = InfeasToFeas( c, A, x_infeas )
+%This function creates a lowerbound for the set covering problem by
+%creating a feasible solution out of the lagrangian solution
+%c: cost vector c of the instance
+%A: adjacency matrix A of the instance
+%x_infeas: potentially infeasible primal solution
+%x_feas: feasible primal solution constructed by applying the Greedy
+%heuristic of Excersise 4c in Set 3 to x_infeas where the smallest
+%appropriate
+n = length(c);
+m = length(A(:,1));
+customersSatisfied = false; %the restriction we need to fix
+x_feas = x_infeas; %While the solution may not be feasible, we store it in
+%the variable which is returned(for easier calculation).
+% obj_feas = 0;
+
+while ~customersSatisfied %continue until solution valid
+
+    keepTracker = 0; %Indicates the amount of constraints not satisfied
+
+    for i = 1:m % for loop which evaluates how many constraints not satisfied
+        checkvalue = 0;
+        for j = 1:n
+            checkvalue = checkvalue + A(i,j)*x_feas(j);
+        end
+        if checkvalue == 0
+            keepTracker = keepTracker + 1;
+        end
+    end
+
+    if keepTracker == 0
+        customersSatisfied = true;
+    end
+    if keepTracker ~= 0
+        %if solution not feasible, we add one best route at the time
+        relevantIndex = 0;
+        relevantMaxRatio = -10;
+        for j = 1:n % determines which route is added(the relevant index)
+            if x_feas(j) == 0 % we only consider not already used routes
+                sumAddedValue = 0;
+                for i = 1:m % Calculates Added Value in terms of customers for route j
+                    served = 0; % For a customer 0 indicates not being served
+                    for jj = 1:n % Calculating if customer i is served
+                        served = x_feas(jj)*A(i,jj);
+                    end
+                    if served == 0 % only Added Value for not already serverd customers
+                        sumAddedValue = sumAddedValue + A(i,j);
+                    end
+                end
+                %Impossible that c(j) = 0, then lagrange has it put on 1
+                if c(j) == 0
+                    relevantIndex = j;   %if c(j) zero, its free to add it
+                    break;
+                else
+                    ratio = sumAddedValue/c(j);
+                    if ratio > relevantMaxRatio %if values equal, we consider smaller index
+                        relevantIndex = j;
+                        relevantMaxRatio = ratio;
+                    end
+                end
+            end
+        end
+        x_feas(relevantIndex) = 1; % We know the best route to add
+    end
+end
+obj_feas = c'*x_feas; %objective value of solution is calculated
+end
+
+
