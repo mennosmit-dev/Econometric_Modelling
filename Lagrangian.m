@@ -1,4 +1,4 @@
-function [ obj_lagrange, x_lagrange ] = Lagrangian( c, A, lambda )
+function [ obj_lagrange, x_lagrange ] = CalculateLagrangian( c, A, lambda )
 %This function creates an upperbound for the set covering problem by
 %maximising the lagrange relexation
 %c: cost vector c of the instance,
@@ -21,4 +21,4 @@ obj_lagrange = lambda'*ones(m,1); %first part of lagrange function
 for j = 1:n % For loop that calculates lagrange optimal objective value
     obj_lagrange = obj_lagrange + (c(j) - lambda'*A(:,j))*x_lagrange(j);
 end
-
+end
