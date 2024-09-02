@@ -5,7 +5,7 @@ function [ obj_feas, x_feas ] = ConvertInfeasToFeas( c, A, x_infeas )
 %A: adjacency matrix A of the instance
 %x_infeas: potentially infeasible primal solution
 %x_feas: feasible primal solution constructed by applying the Greedy
-%heuristic of Excersise 4c in Set 3 to x_infeas where the smallest
+%heuristic
 %appropriate
 n = length(c);
 m = length(A(:,1));
