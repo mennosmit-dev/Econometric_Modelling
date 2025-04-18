@@ -1,0 +1,200 @@
+import java.util.*;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+public class NumericTable implements TableData<Double> {
+    private Map<Integer, LinkedHashMap<String, Double>> data;
+    private double[][] initialData;
+
+    public NumericTable(List<String> headers, double[][] values) {
+        this.data = new LinkedHashMap<>();
+        for (int i = 0; i < values.length; i++) {
+            LinkedHashMap<String, Double> rowMap = new LinkedHashMap<>();
+            for (int j = 0; j < values[0].length; j++) {
+                rowMap.put(headers.get(j), values[i][j]);
+            }
+            this.data.put(i, rowMap);
+        }
+        this.initialData = values;
+    }
+
+    @Override
+    public void updateValue(int row, String column, Double value) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (row < 0 || row > this.rowCount() - 1) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (this.data.get(row).get(column) == null) {
+            throw new IllegalArgumentException();
+        }
+        this.data.get(row).put(column, value);
+    }
+
+    @Override
+    public Double retrieveValue(int row, String column) throws IndexOutOfBoundsException, IllegalArgumentException {
+        if (row < 0 || row > this.rowCount() - 1) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (this.data.get(row).get(column) == null) {
+            throw new IllegalArgumentException();
+        }
+        return this.data.get(row).get(column);
+    }
+
+    @Override
+    public int rowCount() {
+        return this.data.size();
+    }
+
+    @Override
+    public int columnCount() {
+        return this.data.get(0).size();
+    }
+
+    @Override
+    public List<String> getHeaders() {
+        return new ArrayList<>(this.data.get(0).keySet());
+    }
+
+    @Override
+    public VectorData<Double> getRowVector(int row) throws IndexOutOfBoundsException {
+        if (row < 0 || row > this.rowCount() - 1) {
+            throw new IndexOutOfBoundsException();
+        }
+        return new NumericVector(this.data.get(row), "row_" + row);
+    }
+
+    @Override
+    public VectorData<Double> getColumnVector(String column) throws IllegalArgumentException {
+        if (!this.getHeaders().contains(column)) {
+            throw new IllegalArgumentException();
+        }
+        LinkedHashMap<String, Double> columnData = new LinkedHashMap<>();
+        for (int i = 0; i < this.data.size(); i++) {
+            columnData.put("row_" + i, this.data.get(i).get(column));
+        }
+        return new NumericVector(columnData, column);
+    }
+
+    @Override
+    public List<VectorData<Double>> getAllRows() {
+        List<VectorData<Double>> rowVectors = new ArrayList<>();
+        for (Integer rowIndex : this.data.keySet()) {
+            rowVectors.add(this.getRowVector(rowIndex));
+        }
+        return rowVectors;
+    }
+
+    @Override
+    public List<VectorData<Double>> getAllColumns() {
+        List<VectorData<Double>> columnVectors = new ArrayList<>();
+        for (String header : this.data.get(0).keySet()) {
+            columnVectors.add(this.getColumnVector(header));
+        }
+        return columnVectors;
+    }
+
+    @Override
+    public TableData<Double> extend(int newRowCount, List<String> newColumns) throws IllegalArgumentException {
+        if (newRowCount < 0) {
+            throw new IllegalArgumentException();
+        }
+        List<String> updatedHeaders = new ArrayList<>(this.getHeaders());
+        updatedHeaders.addAll(newColumns);
+
+        double[][] expandedData = new double[this.initialData.length + newRowCount][updatedHeaders.size()];
+        for (int i = 0; i < this.initialData.length; i++) {
+            for (int j = 0; j < this.initialData[0].length; j++) {
+                expandedData[i][j] = this.data.get(i).get(this.getHeaders().get(j));
+            }
+        }
+        for (int i = this.initialData.length; i < expandedData.length; i++) {
+            for (int j = this.initialData[0].length; j < expandedData[0].length; j++) {
+                expandedData[i][j] = 0.0;
+            }
+        }
+        return new NumericTable(updatedHeaders, expandedData);
+    }
+
+    public List<String> reorderColumns(Collection<String> columnsToKeep) {
+        List<String> reorderedColumns = new ArrayList<>();
+        for (String column : this.getHeaders()) {
+            if (columnsToKeep.contains(column)) {
+                reorderedColumns.add(column);
+            }
+        }
+        return reorderedColumns;
+    }
+
+    @Override
+    public TableData<Double> filterColumns(Collection<String> columnsToKeep) throws IllegalArgumentException {
+        if (!this.getHeaders().containsAll(columnsToKeep)) {
+            throw new IllegalArgumentException();
+        }
+        List<String> newHeaders = this.reorderColumns(columnsToKeep);
+        double[][] filteredData = new double[this.initialData.length][newHeaders.size()];
+        int currentColumn = 0;
+        for (int j = 0; j < this.getHeaders().size(); j++) {
+            if (newHeaders.contains(this.getHeaders().get(j))) {
+                for (int i = 0; i < this.initialData.length; i++) {
+                    filteredData[i][currentColumn] = this.data.get(i).get(this.getHeaders().get(j));
+                }
+                currentColumn++;
+            }
+        }
+        return new NumericTable(newHeaders, filteredData);
+    }
+
+    @Override
+    public TableData<Double> filterRows(Predicate<VectorData<Double>> rowPredicate) {
+        List<List<Double>> rowsToKeep = new ArrayList<>();
+        for (int i = 0; i < this.initialData.length; i++) {
+            if (rowPredicate.test(this.getRowVector(i))) {
+                rowsToKeep.add(new ArrayList<>(this.getRowVector(i).getValues()));
+            }
+        }
+        double[][] filteredData = new double[rowsToKeep.size()][this.initialData[0].length];
+        for (int i = 0; i < rowsToKeep.size(); i++) {
+            List<Double> currentRow = rowsToKeep.get(i);
+            for (int j = 0; j < currentRow.size(); j++) {
+                filteredData[i][j] = currentRow.get(j);
+            }
+        }
+        return new NumericTable(this.getHeaders(), filteredData);
+    }
+
+    @Override
+    public TableData<Double> addComputedColumn(String columnName, Function<VectorData<Double>, Double> calculation) {
+        List<String> newHeaders = new ArrayList<>(this.getHeaders());
+        newHeaders.add(columnName);
+        NumericTable oldTable = this;
+        NumericTable updatedTable = (NumericTable) this.extend(0, Collections.singletonList(columnName));
+        for (int i = 0; i < this.initialData.length; i++) {
+            updatedTable.updateValue(i, columnName, calculation.apply(oldTable.getRowVector(i)));
+        }
+        return updatedTable;
+    }
+
+    @Override
+    public VectorData<Double> summarizeColumn(String name, BinaryOperator<Double> aggregator) {
+        LinkedHashMap<String, Double> summaryData = new LinkedHashMap<>();
+        for (int j = 0; j < this.initialData[0].length; j++) {
+            double result = 0.0;
+            for (int i = 0; i < this.initialData.length; i++) {
+                double current = this.getColumnVector(this.getHeaders().get(j)).getValue("row_" + i);
+                if (result == 0.0) {
+                    result = current;
+                } else {
+                    result = aggregator.apply(result, current);
+                }
+            }
+            summaryData.put(this.getHeaders().get(j), result);
+        }
+        return new NumericVector(summaryData, name);
+    }
+
+    @Override
+    public TableAnalytics statistics() throws UnsupportedOperationException {
+        return new DataAnalytics(this);
+    }
+}

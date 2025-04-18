@@ -1,0 +1,36 @@
+import java.util.*;
+
+public class NumericVector implements VectorData<Double> {
+    private HashMap<String, Double> elements;
+    private String vectorName;
+
+    public NumericVector(LinkedHashMap<String, Double> elements, String vectorName) {
+        this.elements = elements;
+        this.vectorName = vectorName;
+    }
+
+    @Override
+    public String getName() {
+        return this.vectorName;
+    }
+
+    @Override
+    public List<String> getEntryNames() {
+        return new ArrayList<>(this.elements.keySet());
+    }
+
+    @Override
+    public Double getValue(String entry) {
+        return this.elements.get(entry);
+    }
+
+    @Override
+    public List<Double> getValues() {
+        return new ArrayList<>(this.elements.values());
+    }
+
+    @Override
+    public Map<String, Double> asMap() {
+        return this.elements;
+    }
+}

@@ -1,0 +1,36 @@
+import org.apache.commons.math3.distribution.ExponentialDistribution;
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.distribution.RealDistribution;
+import org.apache.commons.math3.distribution.UniformRealDistribution;
+import java.util.List;
+
+public class DistributionSampler {
+    private RealDistribution distribution;
+
+    public DistributionSampler(RealDistribution distribution) {
+        this.distribution = distribution;
+    }
+
+    public TableData<Double> sampleData(long seed, int rowCount, List<String> columnNames) {
+        this.distribution.reseedRandomGenerator(seed);
+        double[][] sampledData = new double[rowCount][columnNames.size()];
+        for (int j = 0; j < columnNames.size(); j++) {
+            for (int i = 0; i < rowCount; i++) {
+                sampledData[i][j] = this.distribution.sample();
+            }
+        }
+        return new NumericTable(columnNames, sampledData);
+    }
+
+    public static DistributionSampler uniform(double lowerBound, double upperBound) {
+        return new DistributionSampler(new UniformRealDistribution(lowerBound, upperBound));
+    }
+
+    public static DistributionSampler gaussian(double mean, double standardDeviation) {
+        return new DistributionSampler(new NormalDistribution(mean, standardDeviation));
+    }
+
+    public static DistributionSampler exponential(double mean) {
+        return new DistributionSampler(new ExponentialDistribution(mean));
+    }
+}
