@@ -1,2 +1,2 @@
-# Nonlinear-Optimisation
-This class includes several methods for nonlinear optimisation.
+# Econometric Coding
+This class includes several codings from study but only a very small subset.
