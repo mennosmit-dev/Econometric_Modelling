@@ -1,2 +1,2 @@
 # Econometric Coding
-This class includes several codings from Econemtric coding projects but only a small subset.
+This class includes a small subset of my codings from Econemtric projects.
