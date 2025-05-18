@@ -7,15 +7,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A utility class for performing basic statistical analyses on a numeric dataset.
+ */
 public class DataAnalytics implements TableAnalytics {
-    private NumericTable dataset;
+
+    private final NumericTable dataset;
 
     public DataAnalytics(NumericTable dataset) {
         this.dataset = dataset;
     }
 
+    /**
+     * Converts a column of the dataset into a double array.
+     *
+     * @param columnName the name of the column
+     * @return an array of doubles representing the column's values
+     */
     public double[] columnToArray(String columnName) {
-        List<Double> columnData = this.dataset.getColumnVector(columnName).getValues();
+        List<Double> columnData = dataset.getColumnVector(columnName).getValues();
         double[] arrayData = new double[columnData.size()];
         for (int i = 0; i < columnData.size(); i++) {
             arrayData[i] = columnData.get(i);
@@ -25,45 +35,51 @@ public class DataAnalytics implements TableAnalytics {
 
     @Override
     public double tTest(String column, double mean) {
-        TTest tester = new TTest();
-        return tester.tTest(mean, this.columnToArray(column));
+        TTest tTest = new TTest();
+        return tTest.tTest(mean, columnToArray(column));
     }
 
     @Override
     public double tTest(String column1, String column2) {
-        TTest tester = new TTest();
-        return tester.tTest(this.columnToArray(column1), this.columnToArray(column2));
+        TTest tTest = new TTest();
+        return tTest.tTest(columnToArray(column1), columnToArray(column2));
     }
 
     @Override
     public double pearsonsCorrelation(String column1, String column2) {
-        PearsonsCorrelation correlationCalculator = new PearsonsCorrelation();
-        return correlationCalculator.correlation(this.columnToArray(column1), this.columnToArray(column2));
+        PearsonsCorrelation correlation = new PearsonsCorrelation();
+        return correlation.correlation(columnToArray(column1), columnToArray(column2));
     }
 
     @Override
     public DescriptiveStatistics describe(String column) {
-        return new DescriptiveStatistics(this.columnToArray(column));
+        return new DescriptiveStatistics(columnToArray(column));
     }
 
     @Override
     public Map<String, Double> estimateLinearModel(String dependent, List<String> independents) {
-        double[][] independentData = new double[this.dataset.rowCount()][independents.size()];
-        for (int j = 0; j < independents.size(); j++) {
-            double[] columnData = this.columnToArray(independents.get(j));
-            for (int i = 0; i < this.dataset.rowCount(); i++) {
+        int rowCount = dataset.rowCount();
+        int numFeatures = independents.size();
+        double[][] independentData = new double[rowCount][numFeatures];
+
+        for (int j = 0; j < numFeatures; j++) {
+            double[] columnData = columnToArray(independents.get(j));
+            for (int i = 0; i < rowCount; i++) {
                 independentData[i][j] = columnData[i];
             }
         }
+
         OLSMultipleLinearRegression regression = new OLSMultipleLinearRegression();
-        regression.newSampleData(this.columnToArray(dependent), independentData);
+        regression.newSampleData(columnToArray(dependent), independentData);
 
         double[] parameters = regression.estimateRegressionParameters();
         Map<String, Double> modelParameters = new LinkedHashMap<>();
         modelParameters.put("intercept", parameters[0]);
+
         for (int i = 1; i < parameters.length; i++) {
             modelParameters.put(independents.get(i - 1), parameters[i]);
         }
+
         return modelParameters;
     }
 }
