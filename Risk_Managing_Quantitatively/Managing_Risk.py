@@ -180,10 +180,9 @@ def em_algorithm(portfolio_returns, iteration_limit=1000, tol=1e-6):
 
 
 lamda, mu1, sigma1, mu2, sigma2 = em_algorithm(portfolio_returns)
-print(f"EM parameters: {lamda}, {mu1}, {sigma
+print(f"EM parameters: {lamda}, {mu1}, {sigma}")
 
-
-                                        import numpy as np
+import numpy as np
 import pandas as pd
 from scipy.stats import kendalltau, t as student_t, rankdata
 from copulas.bivariate import ClaytonCopula
@@ -363,3 +362,8 @@ if __name__ == "__main__":
     # Clayton copula
     var_copula = clayton_copula_var(loss_returns[:, 0], loss_returns[:, 1], weights)
     print("VaR 99% (Clayton copula):", var_copula)
+
+
+
+
+                                        
