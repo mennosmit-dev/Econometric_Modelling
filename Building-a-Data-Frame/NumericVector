@@ -1,11 +1,21 @@
 import java.util.*;
 
+/**
+ * A simple implementation of VectorData that holds numeric values with named entries.
+ */
 public class NumericVector implements VectorData<Double> {
-    private HashMap<String, Double> elements;
-    private String vectorName;
 
+    private final Map<String, Double> elements;
+    private final String vectorName;
+
+    /**
+     * Constructs a new NumericVector with specified elements and name.
+     *
+     * @param elements   the key-value pairs representing vector entries
+     * @param vectorName the name of the vector
+     */
     public NumericVector(LinkedHashMap<String, Double> elements, String vectorName) {
-        this.elements = elements;
+        this.elements = new LinkedHashMap<>(elements);  // Preserve insertion order
         this.vectorName = vectorName;
     }
 
@@ -16,21 +26,21 @@ public class NumericVector implements VectorData<Double> {
 
     @Override
     public List<String> getEntryNames() {
-        return new ArrayList<>(this.elements.keySet());
+        return new ArrayList<>(elements.keySet());
     }
 
     @Override
     public Double getValue(String entry) {
-        return this.elements.get(entry);
+        return elements.get(entry);
     }
 
     @Override
     public List<Double> getValues() {
-        return new ArrayList<>(this.elements.values());
+        return new ArrayList<>(elements.values());
     }
 
     @Override
     public Map<String, Double> asMap() {
-        return this.elements;
+        return Collections.unmodifiableMap(elements);  // Prevent external modification
     }
 }
