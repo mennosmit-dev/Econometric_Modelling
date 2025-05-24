@@ -14,7 +14,7 @@ This toolkit provides utilities for basic statistical analysis and data sampling
 NumericTable table = new NumericTable(
     List.of("x", "y"),
     new double[][] {{1, 2}, {2, 4}, {3, 6}}
-);
+); ```
 
 DataAnalytics analytics = new DataAnalytics(table);
 System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0
@@ -23,13 +23,6 @@ System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0
 
 - Java 8+
 - Apache Commons Math 3.x
-
-```xml
-<dependency>
-  <groupId>org.apache.commons</groupId>
-  <artifactId>commons-math3</artifactId>
-  <version>3.6.1</version>
-</dependency>
 
 ## Setup Guide
 
