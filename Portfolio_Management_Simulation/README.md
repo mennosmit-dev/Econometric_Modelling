@@ -42,4 +42,4 @@ To run, use Python 3 with NumPy installed:
 
 This script implements classical portfolio theory concepts based on CAPM and mean-variance optimization frameworks.
 
-*Happy investing!* 📊✨
+
