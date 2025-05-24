@@ -19,4 +19,4 @@ I also have experience working with:
 - AIMMS  
 - EVIEWS  
 
-Feel free to explore and reach out if you have any questions! 😊
+Feel free to explore and reach out if you have any questions! 
