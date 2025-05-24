@@ -34,5 +34,6 @@ Follow these steps to get started with the Java Data Analytics Toolkit:
    ```bash
    java -version
 
+## Disclaimer
 **Disclaimer: Although I have extensive programming experience in Java, which I gained through bi-weekly practical projects in 'Introduction to Programming' and 'Programming' which focused on object-orientated programming, Most of these projects I cannot find in memory anymore.**
 
