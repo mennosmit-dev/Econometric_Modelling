@@ -14,10 +14,11 @@ This toolkit provides utilities for basic statistical analysis and data sampling
 NumericTable table = new NumericTable(
     List.of("x", "y"),
     new double[][] {{1, 2}, {2, 4}, {3, 6}}
-); ```
+);
 
 DataAnalytics analytics = new DataAnalytics(table);
 System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0
+```
 
 ## Requirements
 
