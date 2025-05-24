@@ -75,7 +75,4 @@ Fits a GARCH volatility model to estimate time-varying volatility and VaR.
 ### Clayton Copula
 Models dependence structure between assets using Clayton copula and estimates VaR via simulation.
 
-### License
-This project is licensed under the MIT License.
-
 Feel free to open issues or pull requests if you find bugs or want to contribute!
