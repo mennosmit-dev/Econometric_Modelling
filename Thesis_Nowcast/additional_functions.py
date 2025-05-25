@@ -1,435 +1,471 @@
-'''This module contains all functions needed for the main program to run.'''
+"""
+This module contains all functions needed for the main program to run.
+"""
 
-#Several imports from predefined Python functions.
+import os
+import time
+import random
+import tempfile
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
-import tempfile
+from scipy.optimize import least_squares
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.preprocessing import StandardScaler
 import statsmodels.api as sm
-import os
-import time
 from numpy.random import seed
-import random
 from rpy2.robjects import r, pandas2ri, FloatVector, DataFrame
 from rpy2.robjects.conversion import localconverter
 import rpy2.robjects as ro
-from scipy.optimize import least_squares
-from midas.weights import polynomial_weights, WeightMethod, BetaWeights, ExpAlmonWeights #midaspy
-from midas.fit import jacobian_wx #midaspy
 
-pandas2ri.activate() #activates R
+from midas.weights import (
+    polynomial_weights,
+    WeightMethod,
+    BetaWeights,
+    ExpAlmonWeights,
+)  # midaspy
+from midas.fit import jacobian_wx  # midaspy
 
-def lagaugment(a, p):  # Function by Kutadelutze (2022), full reference can be found in main article
+pandas2ri.activate()  # activates R
 
-    '''
+
+def lagaugment(a, p):
+    """
     Extends the original matrix with its lags.
 
-            Parameters:
-                    a (NumPy array): The original matrix
-                    p (int): The number of lags the matrix is expanded by
+    Parameters
+    ----------
+    a : np.ndarray
+        The original matrix.
+    p : int
+        The number of lags the matrix is expanded by.
 
-            Returns:
-                    a, b (NumPy array): Matrix consisting of the original matrix and its lags
-    '''
-
+    Returns
+    -------
+    tuple or np.ndarray
+        If p > 0, returns (a, b) where b is a matrix of lags,
+        otherwise returns a unchanged.
+    """
     try:
         a = a.reshape(a.shape[0], 1)
-    except ValueError or IndexError:
+    except (ValueError, IndexError):
         pass
     if p == 0:
         return a
     else:
-        b = np.zeros([a.shape[0], p * a.shape[1]])
-        b.fill(np.NaN)
+        b = np.full((a.shape[0], p * a.shape[1]), np.nan)
         for pp in range(p):
-            b[pp + 1:, a.shape[1] * pp:(pp + 1) * a.shape[1]] = a[:-(pp + 1), :]
-    return a, b
+            b[pp + 1 :, a.shape[1] * pp : (pp + 1) * a.shape[1]] = a[: -(pp + 1), :]
+        return a, b
 
 
-def dmtest(e1, e2, h):  # Function by Kutadelutze (2022), full reference can be found in main article
+def dmtest(e1, e2, h):
+    """
+    Calculates the Diebold-Mariano (DM) test statistic.
 
-    '''
-    Calculates the Diebold Mariano (DM) test.
+    Parameters
+    ----------
+    e1 : np.ndarray
+        Forecast errors from model 1.
+    e2 : np.ndarray
+        Forecast errors from model 2.
+    h : int
+        The forecast horizon, equals 1 when nowcasting GDP.
 
-            Parameters:
-                    e1 (NumPy array): The original matrix
-                    e2 (NumPy array): The number of lags the matrix is expanded by
-                    h (int): The number of horizons, equals 1 when nowcasting GDP
-
-            Returns:
-                    DM (double): The Diebold-Mariano test statistic
-    '''
-
+    Returns
+    -------
+    float
+        The Diebold-Mariano test statistic.
+    """
     e1 = e1.reshape(e1.shape[0], 1)
     e2 = e2.reshape(e2.shape[0], 1)
-    T = e1.shape[0]  # Observations
-    d = e1**2 - e2**2  # Loss differential
-    Mu = np.mean(d)  # Var of Loss differential
-    gamma0 = np.var(d) * T / (T - 1)  # Autocorrelation
+    T = e1.shape[0]  # number of observations
+
+    d = e1**2 - e2**2  # loss differential
+    mu = np.mean(d)
+    gamma0 = np.var(d) * T / (T - 1)  # autocovariance at lag 0
 
     if h > 1:
-        gamma = np.zeros([h - 1, 1])
+        gamma = np.zeros(h - 1)
         for i in range(1, h):
-            sCov = np.cov(np.vstack((d[i:T].T, d[0:T - i].T)))
-            gamma[i - 1] = sCov[0, 1]
-        varD = gamma0 + 2 * sum(gamma)[0]
+            s_cov = np.cov(np.vstack((d[i:T].T, d[0 : T - i].T)))
+            gamma[i - 1] = s_cov[0, 1]
+        var_d = gamma0 + 2 * np.sum(gamma)
     else:
-        varD = gamma0
+        var_d = gamma0
 
-    DM = Mu / np.sqrt((1 / T) * varD)  # DM statistic ~N(0,1)
-    return DM
+    dm_stat = mu / np.sqrt((1 / T) * var_d)  # DM statistic ~ N(0,1)
+    return dm_stat
 
-def getPCs(data_training, Mode, hyper, K):
 
-    '''
-    Returns the principal componets associated with the data.
+def get_pcs(data_training, mode, hyper, k):
+    """
+    Returns principal components associated with the data.
 
-            Parameters:
-                    data_training (DataFrame): The monthly regressor data
-                    Mode (List): Contains the type of principal component to be returned
-                    hyper (double): Is the hyperparamater value for the principal component
-                    K (int): The number of PCs to be returned
+    Parameters
+    ----------
+    data_training : pd.DataFrame
+        The monthly regressor data.
+    mode : list or str
+        Contains the type of principal component to be returned.
+    hyper : float
+        Hyperparameter value for the principal component.
+    k : int
+        Number of principal components to return.
 
-            Returns:
-                    Fhat (DataFrame): Matrix consisting of the principal components
-    '''
-
+    Returns
+    -------
+    np.ndarray
+        Matrix consisting of the principal components.
+    """
     # Standardize the training data
     data_training_standardized = stats.zscore(data_training, axis=0, ddof=1)
 
-    # Determine the kernel type if applicable
-    if Mode[0] == 'K':
-        kernel = Mode[3:]  # Extracts kernel type
+    # Determine kernel type if applicable
+    if mode[0] == 'K':
+        kernel = mode[3:]  # Extract kernel type
     else:
         kernel = False
 
-    # Initialize the transformed data variable
-    Fhat = None
-
     # PCA
-    if Mode[0] == 'P':
-      pca = PCA(n_components=K)
-      Fhat = pca.fit_transform(data_training_standardized)  # Calculates the linear principal components
+    if mode[0] == 'P':
+        pca = PCA(n_components=k)
+        fhat = pca.fit_transform(data_training_standardized)
 
-    # SPC
-    elif Mode[0] == 'S':
-      Wts = np.hstack((data_training_standardized, data_training_standardized**2))
-      Wts = StandardScaler().fit_transform(Wts)
-      pca = PCA(n_components=K)
-      Fhat = pca.fit_transform(Wts)
+    # SPC (Squared Principal Components)
+    elif mode[0] == 'S':
+        wts = np.hstack((data_training_standardized, data_training_standardized**2))
+        wts = StandardScaler().fit_transform(wts)
+        pca = PCA(n_components=k)
+        fhat = pca.fit_transform(wts)
 
-    # KPCA
-    elif Mode[0] == 'K':
+    # KPCA (Kernel PCA)
+    elif mode[0] == 'K':
         if kernel in ['sigmoid', 'rbf']:
-          transformer = KernelPCA(n_components=K, kernel=kernel, gamma=hyper)
+            transformer = KernelPCA(n_components=k, kernel=kernel, gamma=hyper)
         else:
-            transformer = KernelPCA(n_components=K, kernel=kernel, degree=2)
-        Fhat = transformer.fit_transform(data_training_standardized)
+            transformer = KernelPCA(n_components=k, kernel=kernel, degree=2)
+        fhat = transformer.fit_transform(data_training_standardized)
 
-    return Fhat
+    else:
+        fhat = None
+
+    return fhat
 
 
 def prepare_current_data(m, first_month_in_data, use_vintage_data):
+    """
+    Extracts and processes the current data.
 
-    '''
-    Extracts the current data and fully processes it.
+    Parameters
+    ----------
+    m : int
+        The current vintage data requested.
+    first_month_in_data : int
+        The first month in the training data.
+    use_vintage_data : bool
+        Whether or not vintage data is used.
 
-            Parameters:
-                    m (int): The current vintage data requested
-                    first_month_in_data (int): The first month in the training data
-                    use_vintage_data (bool): Whether or not vintage data is used
+    Returns
+    -------
+    None
+        Processed data is saved to csv files for safety.
+    """
+    q = (m - 1) // 3  # current quarter
+    year = 1960 + (m - 1) // 12  # current year
+    month = (m - 1) % 12 + 1  # current vintage month
+    monthly_str = f"{year}-{month:02d}m.csv"
 
-            Returns:
-                    None: The processed data is not returned but for safety explicitly written to a csv file
-    '''
-
-    q = (m - 1) // 3 # The current quarter
-    year = 1960 + (m - 1) // 12 # The current year
-    month = (m - 1) % 12 + 1 # The current vintage month (differs from m)
-    monthly_str = f"{year}-{month:02d}m.csv" # String is formed to extract the correct monthly vintage data later
-
-    # Opens all files for data processing and makes them empty. Modified data is for intermediate processing and transformed data is final processed data.
-    with open('/content/Monthly_Data_Modified.csv', 'w') as file:
-        pass
-    with open('/content/Quarterly_Data_Modified.csv', 'w') as file:
-        pass
-    with open('/content/Transformed_Monthly_Data.csv', 'w') as file:
-        pass
-    with open('/content/Transformed_Quarterly_Data.csv', 'w') as file:
-        pass
+    # Clear existing modified data files
+    for fname in [
+        "/content/Monthly_Data_Modified.csv",
+        "/content/Quarterly_Data_Modified.csv",
+        "/content/Transformed_Monthly_Data.csv",
+        "/content/Transformed_Quarterly_Data.csv",
+    ]:
+        with open(fname, "w"):
+            pass
 
     if use_vintage_data:
         print(monthly_str)
         monthly_file_path = f"/content/{monthly_str}"
-        quarterly_file_path = f"/content/Quarterly_Vintages.xlsx"
-        Monthly = pd.read_csv(monthly_file_path, header=None) # the current monthly data is read
-        Quarterly = pd.read_excel(quarterly_file_path, header=None) # the quarterly data is read
-        new_monthly_file_path = "/content/Monthly_Data_Modified.csv"
-        new_quarterly_file_path = "/content/Quarterly_Data_Modified.csv"
+        quarterly_file_path = "/content/Quarterly_Vintages.xlsx"
 
-        # The current quarterly vintage data is extracted by selecting the correct column
-        colomQuarterly = m - 69  # Small correction of -69 is done to match the month with the columns of the dataset
-        Quarterly = Quarterly.iloc[:, colomQuarterly]
+        monthly = pd.read_csv(monthly_file_path, header=None)
+        quarterly = pd.read_excel(quarterly_file_path, header=None)
 
-        # The quarterly data is cut to exclude periods after the current month
-        end_index = Quarterly.last_valid_index()
-        Quarterly = Quarterly.iloc[:end_index + 1]
+        # Extract current quarterly vintage column with adjustment
+        col_quarterly = m - 69
+        quarterly = quarterly.iloc[:, col_quarterly]
 
-        # Saving adjusted dataframe to a new Excel (to not alter orginal dataset)
-        Quarterly = Quarterly.to_frame()
-        Monthly.to_csv("/content/Monthly_Data_Modified.csv", header=None, index=False)
-        Quarterly.to_csv("/content/Quarterly_Data_Modified.csv", header=None, index=False)
+        # Trim quarterly data up to last valid index
+        end_index = quarterly.last_valid_index()
+        quarterly = quarterly.iloc[: end_index + 1]
 
-        # Transforming data
-        transformation_function("/content/Monthly_Data_Modified.csv", "/content/Quarterly_Data_Modified.csv", first_month_in_data, m)
+        # Save adjusted data
+        quarterly = quarterly.to_frame()
+        monthly.to_csv("/content/Monthly_Data_Modified.csv", header=None, index=False)
+        quarterly.to_csv("/content/Quarterly_Data_Modified.csv", header=None, index=False)
 
-        # Makes the data ready to be used by EM algorithm
+        # Transform and impute
+        transformation_function(
+            "/content/Monthly_Data_Modified.csv",
+            "/content/Quarterly_Data_Modified.csv",
+            first_month_in_data,
+            m,
+        )
         Setup_Imputation()
-
-        # EM algorithm
         Impute()
 
     else:
-        monthly_file_path = "/content/2024-04m.csv" # Last monthly vintage data is always selected
-        quarterly_file_path = f"/content/Quarterly_Vintages.xlsx"
-        Monthly = pd.read_csv(monthly_file_path, header=None)
-        Quarterly = pd.read_excel(quarterly_file_path, header=None)
-        new_monthly_file_path = "/content/Monthly_Data_Modified.csv"
-        new_quarterly_file_path = "/content/Quarterly_Data_Modified.csv"
+        # Load last monthly vintage and quarterly vintages
+        monthly_file_path = "/content/2024-04m.csv"
+        quarterly_file_path = "/content/Quarterly_Vintages.xlsx"
 
-        #The vintage data is accessed to check where to cut off the last vintage data sets
-        monthly_file_path = f"/content/{monthly_str}"
-        quarterly_file_path = f"/content/Quarterly_Vintages.xlsx"
-        Monthly_reference = pd.read_csv(monthly_file_path, header=None)
-        Quarterly_reference = pd.read_excel(quarterly_file_path, header=None)
+        monthly = pd.read_csv(monthly_file_path, header=None)
+        quarterly = pd.read_excel(quarterly_file_path, header=None)
+
+        # Load vintage reference files
+        monthly_reference = pd.read_csv(f"/content/{monthly_str}", header=None)
+        quarterly_reference = pd.read_excel(quarterly_file_path, header=None)
         print(monthly_str)
 
-        # The current quarterly vintage data is extracted by selecting the correct column
-        colomQuarterly = m - 69  # Small correction of -69 is done to match the month with the columns of the dataset
-        Quarterly = Quarterly.iloc[:, colomQuarterly]
+        col_quarterly = m - 69
+        quarterly = quarterly.iloc[:, col_quarterly]
+        end_index = quarterly.last_valid_index()
+        quarterly = quarterly.iloc[: end_index + 1]
 
-        # The quarterly data is cut to exclude periods after the current month
-        end_index = Quarterly.last_valid_index()
-        Quarterly = Quarterly.iloc[:end_index + 1]
-
-        # Cuts the last vintage data to match it with the real vintage data size
-        monthly_diff = len(Monthly) - len(Monthly_reference)
-        quarterly_diff = len(Quarterly) - len(Quarterly_reference)
+        # Align lengths with reference vintages
+        monthly_diff = len(monthly) - len(monthly_reference)
+        quarterly_diff = len(quarterly) - len(quarterly_reference)
         if monthly_diff > 0:
-            Monthly = Monthly.iloc[:-monthly_diff]
+            monthly = monthly.iloc[:-monthly_diff]
         if quarterly_diff > 0:
-            Quarterly = Quarterly.iloc[:-quarterly_diff]
+            quarterly = quarterly.iloc[:-quarterly_diff]
 
-        # Initialising categories for variables who have lags in the real vintage data (grouped by colomn number)
+        # Variable groups for lag treatment
         cols_zero_or_one = [116, 117, 118, 119]
         cols_one = [58, 62, 63, 72]
         cols_one_or_two = [1, 2, 3, 75, 124, 125]
         cols_zero_to_eight = [20, 21, 76]
 
-        # Setting last zero or one elements to zero for columns 116, 117, 118, and 119
+        # Apply zeroing of last elements randomly as per variable group
         for col in cols_zero_or_one:
-            num_to_zero = np.random.randint(0, 2) # Random number generator to determine whether put to zero or one
-            Monthly.iloc[-num_to_zero:, col] = 0
+            num_to_zero = random.randint(0, 1)
+            monthly.iloc[-num_to_zero:, col] = 0
 
-        # Setting last element to zero for columns 58, 62, 63, and 72
         for col in cols_one:
-            Monthly.iloc[-1, col] = 0
+            monthly.iloc[-1, col] = 0
 
-        # Setting last one or two elements to zero for columns 1, 2, 3, 75, 124, 125
         for col in cols_one_or_two:
-            num_to_zero = np.random.randint(1, 3)
-            Monthly.iloc[-num_to_zero:, col] = 0
+            num_to_zero = random.randint(1, 2)
+            monthly.iloc[-num_to_zero:, col] = 0
 
-        # Setting last zero up to eight elements to zero for columns 20, 21, and 76
         for col in cols_zero_to_eight:
-            num_to_zero = np.random.randint(0, 9)
-            Monthly.iloc[-num_to_zero:, col] = 0
+            num_to_zero = random.randint(0, 8)
+            monthly.iloc[-num_to_zero:, col] = 0
 
+        # Save adjusted data
+        quarterly = quarterly.to_frame()
+        monthly.to_csv("/content/Monthly_Data_Modified.csv", header=None, index=False)
+        quarterly.to_csv("/content/Quarterly_Data_Modified.csv", header=None, index=False)
 
-        # Saving adjusted dataframe to a new Excel (to not alter orginal dataset)
-        Quarterly = Quarterly.to_frame()
-        Monthly.to_csv("/content/Monthly_Data_Modified.csv", header=None, index=False)
-        Quarterly.to_csv("/content/Quarterly_Data_Modified.csv", header=None, index=False)
-
-        # Transforming data
-        transformation_function("/content/Monthly_Data_Modified.csv", "/content/Quarterly_Data_Modified.csv", first_month_in_data, m)
-
-
-        # Makes the data ready to be used by EM algorithm
+        # Transform and impute
+        transformation_function(
+            "/content/Monthly_Data_Modified.csv",
+            "/content/Quarterly_Data_Modified.csv",
+            first_month_in_data,
+            m,
+        )
         Setup_Imputation()
-
-        # EM algorithm
         Impute()
 
-        return None
+    return None
 
 
-def transformation_function(new_monthly_file_path, new_quarterly_file_path, first_month_in_data, m): # Function partly from Benett (2023), full reference can be found in main article
+def transformation_function(
+    new_monthly_file_path, new_quarterly_file_path, first_month_in_data, m
+):
+    """
+    Transforms the monthly and quarterly data.
 
-    '''
-    Transforms the data.
+    Parameters
+    ----------
+    new_monthly_file_path : str
+        Path to monthly data CSV file.
+    new_quarterly_file_path : str
+        Path to quarterly data CSV file.
+    first_month_in_data : int
+        The first month in the training data.
+    m : int
+        The current month.
 
-            Parameters:
-                    new_monthly_file_path (string): The file of the monthly data
-                    new_quarterly_file_path (string): The file of the quarterly data
-                    first_month_in_data (int): The first month in the training data
-                    m (int): the current month
+    Returns
+    -------
+    None
+        The transformed data is saved to CSV files.
+    """
+    monthly = pd.read_csv(new_monthly_file_path, header=None)
+    quarterly = pd.read_csv(new_quarterly_file_path, header=None)
 
-            Returns:
-                    None: The processed data is not returned but for safety explicitly written to a csv file
-    '''
-
-    # Data loaded
-    Monthly = pd.read_csv(new_monthly_file_path, header=None)
-    Quarterly = pd.read_csv(new_quarterly_file_path, header=None)
-
-    # The last starting and current quarter are calculated
     first_quarter_in_data = (first_month_in_data - 1) // 3
-    q = (m - 1) // 3 + 1 #added one later to make it correct, might have to check for different months in debugging
+    q = (m - 1) // 3 + 1  # added one to correct quarter index
 
-    # Cutting monthly data
-    rawdata1 = Monthly.values[13+first_month_in_data -1:13+m, 1:]  # extract raw data used for transformations later
-    Trans_code1 = Monthly.values[1, 1:].astype(int).reshape(-1, 1)  # extract transformation codes
+    rawdata1 = monthly.values[13 + first_month_in_data - 1 : 13 + m, 1:]
+    trans_code1 = monthly.values[1, 1:].astype(int).reshape(-1, 1)
 
-    # Cutting quarterly data
-    rawdata2 = Quarterly.values[53 + first_quarter_in_data - 1:, 0]   # making sure we start at the right moment
+    rawdata2 = quarterly.values[53 + first_quarter_in_data - 1 :, 0]
 
-    # Initialising the transformed data matrices
-    X = np.full((rawdata1.shape[0], rawdata1.shape[1]), np.nan)
+    X = np.full(rawdata1.shape, np.nan)
     small = 1e-6  # Threshold for small values
 
-    # Loop that for all variables transforms the data
     for i in range(rawdata1.shape[1]):
         x = rawdata1[:, i].astype(float)
-        tcode = int(Trans_code1[i][0])  # Ensure tcode is integer
+        tcode = int(trans_code1[i][0])
         n = x.shape[0]
 
-        if tcode == 1:  # Level (i.e. no transformation): x(t)
+        if tcode == 1:
+            # Level (no transformation)
             X[:, i] = x
-        elif tcode == 2:  # First difference: x(t)-x(t-1)
-            X[1:n, i] = x[1:n] - x[0:n-1]
-        elif tcode == 3:  # Second difference: (x(t)-x(t-1))-(x(t-1)-x(t-2))
-            X[2:n, i] = x[2:n] - 2 * x[1:n-1] + x[0:n-2]
-        elif tcode == 4:  # Natural log: ln(x)
+        elif tcode == 2:
+            # First difference
+            X[1:n, i] = x[1:n] - x[0 : n - 1]
+        elif tcode == 3:
+            # Second difference
+            X[2:n, i] = x[2:n] - 2 * x[1 : n - 1] + x[0 : n - 2]
+        elif tcode == 4:
+            # Natural log
             for j in range(n):
                 if x[j] > small:
                     X[j, i] = np.log(x[j])
                 else:
                     X[j, i] = np.nan
-        elif tcode == 5:  # First difference of natural log: ln(x)-ln(x-1)
+        elif tcode == 5:
+            # First difference of natural log
             for j in range(1, n):
-                if x[j] > small and x[j-1] > small:
-                    X[j, i] = np.log(x[j]) - np.log(x[j-1])
+                if x[j] > small and x[j - 1] > small:
+                    X[j, i] = np.log(x[j]) - np.log(x[j - 1])
                 else:
                     X[j, i] = np.nan
-        elif tcode == 6:  # Second difference of natural log: (ln(x)-ln(x-1))-(ln(x-1)-ln(x-2))
+        elif tcode == 6:
+            # Second difference of natural log
             for j in range(2, n):
-                if x[j] > small and x[j-1] > small and x[j-2] > small:
-                    X[j, i] = np.log(x[j]) - 2 * np.log(x[j-1]) + np.log(x[j-2])
+                if x[j] > small and x[j - 1] > small and x[j - 2] > small:
+                    X[j, i] = np.log(x[j]) - 2 * np.log(x[j - 1]) + np.log(x[j - 2])
                 else:
                     X[j, i] = np.nan
-        elif tcode == 7:  # First difference of percent change: (x(t)/x(t-1)-1)-(x(t-1)/x(t-2)-1)
-            z = np.zeros([n])
+        elif tcode == 7:
+            # First difference of percent change
+            z = np.zeros(n)
             for j in range(1, n):
-                if x[j-1] > small:
-                    z[j] = (x[j] - x[j-1]) / x[j-1]
+                if x[j - 1] > small:
+                    z[j] = (x[j] - x[j - 1]) / x[j - 1]
             for j in range(2, n):
-                X[j, i] = z[j] - z[j-1]
+                X[j, i] = z[j] - z[j - 1]
 
-    # Initialising the transformed data matrices
     Y = np.full((rawdata2.shape[0], 1), np.nan)
-    small = 1e-6  # small value to avoid log of zero
 
-    # Transform the GDP via growth rate log (transformation code 5)
     x = rawdata2.astype(float)
     n = x.shape[0]
     for j in range(1, n):
-        if x[j] > small and x[j-1] > small:
-            Y[j, 0] = np.log(x[j]) - np.log(x[j-1])
+        if x[j] > small and x[j - 1] > small:
+            Y[j, 0] = np.log(x[j]) - np.log(x[j - 1])
         else:
             Y[j, 0] = np.nan
 
-    # Save transformed data
-    np.savetxt("/content/Monthly_Data_Modified.csv", X, delimiter=',')
-    np.savetxt("/content/Quarterly_Data_Modified.csv", Y, delimiter=',')
-
-    return None
-
-def Setup_Imputation():
-
-    '''
-    Sets up the data such that it can be imputed after.
-
-            Parameters:
-                    None: The function only uses the data from the Excel document
-
-            Returns:
-                    None: The processed data is not returned but for safety explicitly written to a csv file
-    '''
-
-    # Data is read
-    Monthly = pd.read_csv("/content/Monthly_Data_Modified.csv", header=None)
-    Quarterly = pd.read_csv("/content/Quarterly_Data_Modified.csv", header=None)
-
-    # The columns that only NaN are deleted as it interferes with EM algorithm
-    Monthly = Monthly.dropna(axis=1, how='all')
-
-    # First row for the monthly and quarterly data is dropped as it contains only NaN values after the earlier transformation
-    Monthly = Monthly.drop(index=0)
-    Quarterly = Quarterly.drop(index=0)
-
-    # All zero values are replaced by NaN values as is needed for EM algorithm and is needed in general
-    Monthly.replace(0, np.nan, inplace=True)
-    Quarterly.replace(0, np.nan, inplace=True)
-
-    # We convert Quarterly DataFrame to a Series for the the AR imputation.
-    Quarterly = Quarterly.iloc[:, 0]
-
-    # Quarterly Data is AR(1) imputed by the last known element
-    if Quarterly.isnull().any():
-        Quarterly.fillna(method='ffill', inplace=True)
-
-    # We convert it back to a DataFrame to save it
-    Quarterly = Quarterly.to_frame()
-
-    #Saving data
-    Monthly.to_csv("/content/Monthly_Data_Modified.csv", header = None, index=False)
-    Quarterly.to_csv("/content/Transformed_Quarterly_Data.csv", header = None, index=False)
+    np.savetxt("/content/Monthly_Data_Modified.csv", X, delimiter=",")
+    np.savetxt("/content/Quarterly_Data_Modified.csv", Y, delimiter=",")
 
     return None
 
 
-def Impute():
+import numpy as np
+import pandas as pd
+from pandas import DataFrame
+from rpy2.robjects import r, FloatVector
+from scipy.optimize import least_squares
 
-    '''
-    Imputes the data.
+# Assuming polynomial_weights, BetaWeights, jacobian_wx are defined elsewhere
 
-            Parameters:
-                    None: The function only uses the data from the Excel document
 
-            Returns:
-                    None: The processed data is not returned but for safety explicitly written to a csv file
-    '''
+def setup_imputation():
+    """
+    Sets up the data so it can be imputed later.
 
-    Monthly = pd.read_csv("/content/Monthly_Data_Modified.csv", header=None)
+    Reads monthly and quarterly data CSV files, cleans the data by:
+    - Dropping columns with all NaN values
+    - Dropping the first row if it contains NaNs
+    - Replacing zeros with NaNs
+    - Performing forward-fill AR(1) imputation on the quarterly data
+    
+    The processed data is saved back to CSV files for later imputation.
 
-    # Putting the data in a format that R can work with later
-    Monthly_R_format = DataFrame({col: FloatVector(Monthly[col].astype(float).values) for col in Monthly.columns})
+    Parameters:
+        None (Uses local CSV files as data source)
 
-    # Assigning the data to R
-    r.assign('Monthly', Monthly_R_format)
+    Returns:
+        None (Saves processed data to CSV files)
+    """
+    monthly = pd.read_csv("/content/Monthly_Data_Modified.csv", header=None)
+    quarterly = pd.read_csv("/content/Quarterly_Data_Modified.csv", header=None)
 
-    # R code
+    # Drop columns that contain only NaNs
+    monthly = monthly.dropna(axis=1, how='all')
+
+    # Drop the first row (likely containing NaNs after previous steps)
+    monthly = monthly.drop(index=0)
+    quarterly = quarterly.drop(index=0)
+
+    # Replace zero values with NaN
+    monthly.replace(0, np.nan, inplace=True)
+    quarterly.replace(0, np.nan, inplace=True)
+
+    # Convert quarterly DataFrame to Series for AR imputation
+    quarterly = quarterly.iloc[:, 0]
+
+    # Forward-fill NaN values in quarterly data (AR(1) imputation)
+    if quarterly.isnull().any():
+        quarterly.fillna(method='ffill', inplace=True)
+
+    # Convert back to DataFrame
+    quarterly = quarterly.to_frame()
+
+    # Save processed data
+    monthly.to_csv("/content/Monthly_Data_Modified.csv", header=None, index=False)
+    quarterly.to_csv("/content/Transformed_Quarterly_Data.csv", header=None, index=False)
+
+
+def impute():
+    """
+    Performs imputation on monthly data using an EM algorithm implemented in R.
+
+    Reads the cleaned monthly data CSV, passes it to R,
+    runs the EM algorithm from the 'fbi' R package,
+    and saves the transformed data back to a CSV file.
+
+    Parameters:
+        None (Reads from and writes to local CSV files)
+
+    Returns:
+        None (Saves imputed data to CSV)
+    """
+    monthly = pd.read_csv("/content/Monthly_Data_Modified.csv", header=None)
+
+    # Convert data to R format (list of FloatVectors)
+    monthly_r_format = DataFrame({
+        col: FloatVector(monthly[col].astype(float).values)
+        for col in monthly.columns
+    })
+
+    # Assign data to R environment
+    r.assign('Monthly', monthly_r_format)
+
+    # R code to run EM algorithm and save results
     r_code = """
-    # Installs several packages which are needed for EM algorithm, only if they are not yet installed
     if (!requireNamespace("devtools", quietly = TRUE)) {
         install.packages("devtools", repos='http://cran.us.r-project.org')
-    }
-    if (!requireNamespace("pracma", quietly = TRUE)) {
-        install.packages("pracma", repos='http://cran.us.r-project.org')
     }
     if (!requireNamespace("readr", quietly = TRUE)) {
         install.packages("readr", repos='http://cran.us.r-project.org')
@@ -438,163 +474,165 @@ def Impute():
         install.packages("stats", repos='http://cran.us.r-project.org')
     }
     library(devtools)
-    #library(pracma)
     library(readr)
     library(stats)
 
-    # Installs EM algorithm if not yet installed
     if (!requireNamespace("fbi", quietly = TRUE)) {
         devtools::install_github("cykbennie/fbi")
     }
     library(fbi)
 
-    # Function that transforms the data
     transform_dataset <- function(Monthly) {
-
         kmax <- 12
         if (!is.matrix(Monthly)) {
-        Monthly <- as.matrix(Monthly)
+            Monthly <- as.matrix(Monthly)
         }
-
-        # EM algorithm as per Benett (2023)
         transformed_monthly <- tp_apc(Monthly, kmax = kmax, center = TRUE, standardize = TRUE, re_estimate = TRUE)
-
-        # Save results to the excel sheet
         write.csv(as.data.frame(transformed_monthly$data), '/content/Transformed_Monthly_Data.csv', row.names = FALSE)
     }
 
     transform_dataset(Monthly)
-
     """
 
-    # Executes the R code and saves it a second time which is needed as in rare cases the changes to the excel sheet are not kept
+    # Execute R code
     r(r_code)
+
+    # Reload transformed data and save again for reliability
     transformed_monthly = pd.read_csv("/content/Transformed_Monthly_Data.csv")
     np.savetxt("/content/Transformed_Monthly_Data.csv", transformed_monthly, delimiter=',')
 
-    return None
 
+def estimate_general(y, yl, X, polys, lambda_1):
+    """
+    Estimates a MIDAS model using Nonlinear Least Squares (NLS).
 
-def estimate_general(y, yl, X, polys, lambda_1): # Function is an extended version of the functions from Zuskin (2020), and Sapphire (2020), see article for full references
+    Parameters:
+        y (np.ndarray): Dependent variable (growth rate of GDP)
+        yl (np.ndarray or None): First lag of dependent variable (growth rate of GDP)
+        X (np.ndarray): Regressor dataset (higher frequency)
+        polys (list): Polynomial weighting methods used for MIDAS
+        lambda_1 (float): Ridge penalty coefficient to prevent overfitting
 
-    '''
-    Estimates a MIDAS model using NLS.
-
-            Parameters:
-                    y: The dependent variable (growth rate of GDP)
-                    yl: The first lag of the dependent variable (growth rate of GDP)
-                    X: The regressor data set
-                    polys: The polynomial weighting methods that are used
-                    lambda_1: Ridge penalty on regressors of X to prevent overfitting of MIDAS
-
-            Returns:
-                    opt_res: The estimated parameters
-    '''
-    # Extracts the weighting methods
+    Returns:
+        opt_res (OptimizeResult): Result object with estimated parameters
+    """
+    # Extract weighting methods instances
     weight_methods = [polynomial_weights(poly) for poly in polys]
 
-    # Based on the number of weight_methods the number of regressors in X is determined
+    # Number of regressors equals number of weighting methods
     num_regressors = len(weight_methods)
 
-    # The data is transformed according to the weighting method and its initialsed weights
-    xws = [weight_method.x_weighted(X[:, i*3:(i+1)*3], weight_method.init_params())[0] for i, weight_method in enumerate(weight_methods)]
+    # Apply initial polynomial weights to X
+    xws = [
+        weight_method.x_weighted(X[:, i * 3:(i + 1) * 3], weight_method.init_params())[0]
+        for i, weight_method in enumerate(weight_methods)
+    ]
 
-    # Channging the data from a list of arrays to a 2D numpy array, which is needed for the next step
+    # Concatenate weighted regressors into 2D array
     xw_concat = np.concatenate([xw.reshape((len(xw), 1)) for xw in xws], axis=1)
 
-    if yl is not None: # one lag of y
+    if yl is not None:
+        # OLS initial parameters with lagged y
+        c = np.linalg.lstsq(
+            np.concatenate([np.ones((len(xw_concat), 1)), xw_concat, yl], axis=1),
+            y,
+            rcond=None,
+        )[0]
 
-        # First we do OLS to get initial parameters
-        c = np.linalg.lstsq(np.concatenate([np.ones((len(xw_concat), 1)), xw_concat, yl], axis=1), y, rcond=None)[0]
-
-        # Initialisation of the objective function and Jacobian function for NLS later
+        # Objective and Jacobian for NLS
         f = lambda v: ssr_generalized(v, X, y, yl, weight_methods, lambda_1)
         jac = lambda v: jacobian_generalized(v, X, y, yl, weight_methods)
 
-        # Flattening c as it needs to a single dimension array
-        c_t = c.T
-        c_flat = c_t.flatten()
+        c_flat = c.T.flatten()
 
-        # Concatenates the initial OLS estimates of X to the polynomial weights and to OLS estimates of ylag
-        init_params = np.concatenate([c_flat[0:num_regressors + 1]] + [weight_method.init_params() for weight_method in weight_methods] + [c_flat[num_regressors + 1:]])
+        # Initial params: intercept, regressors, poly params, lag params
+        init_params = np.concatenate(
+            [
+                c_flat[0 : num_regressors + 1],
+                *[wm.init_params() for wm in weight_methods],
+                c_flat[num_regressors + 1 :],
+            ]
+        )
+    else:
+        # OLS initial parameters without lagged y
+        c = np.linalg.lstsq(
+            np.concatenate([np.ones((len(xw_concat), 1)), xw_concat], axis=1),
+            y,
+            rcond=None,
+        )[0]
 
-    else: # no lag of y
-
-        # First we do OLS to get initial parameters
-        c = np.linalg.lstsq(np.concatenate([np.ones((len(xw_concat), 1)), xw_concat], axis=1), y, rcond=None)[0]
-
-        # Initialisation of the objective function and Jacobian function for NLS later
         f = lambda v: ssr_generalized(v, X, y, yl, weight_methods, lambda_1)
         jac = lambda v: jacobian_generalized(v, X, y, yl, weight_methods)
 
-        # Flattening c as it needs to a single dimension array
-        c_t = c.T
-        c_flat = c_t.flatten()
+        c_flat = c.T.flatten()
 
-        # Concatenates the initial OLS estimates of X to the polynomial weights
-        init_params = np.concatenate([c_flat[0:num_regressors + 1]] + [weight_method.init_params() for weight_method in weight_methods])
+        init_params = np.concatenate(
+            [c_flat[0 : num_regressors + 1], *[wm.init_params() for wm in weight_methods]]
+        )
 
-    if isinstance(weight_methods[0], BetaWeights): # Beta polynomial requires bounds to ensure theta1 and theta2 > 0 (not the case for kPCA for high hyperparamter values)
-        # Bounds for the various paramaters initialised
-        lower_bounds = []
-        upper_bounds = []
+    # Bounds if using BetaWeights to enforce positivity on theta1, theta2
+    if isinstance(weight_methods[0], BetaWeights):
+        lower_bounds = [-np.inf] * (1 + num_regressors)
+        upper_bounds = [np.inf] * (1 + num_regressors)
 
-        # Infinite bounds for intercept and OLS coefficient regressors
-        lower_bounds.extend([-np.inf] * (1 + num_regressors))
-        upper_bounds.extend([np.inf] * (1 + num_regressors))
-
-        # Bounds for theta1 and theta2
-        for i in range(num_regressors):
-            lower_bounds.extend([1e-6, 1e-6])  # Bounds for theta1 and theta2
+        for _ in range(num_regressors):
+            lower_bounds.extend([1e-6, 1e-6])
             upper_bounds.extend([np.inf, np.inf])
 
-        # Bounds for coefficient yl if it is not None
         if yl is not None:
             lower_bounds.extend([-np.inf] * len(yl[0]))
             upper_bounds.extend([np.inf] * len(yl[0]))
 
-        # NLS optimisation for Beta polynomial
-        opt_res = least_squares(f, init_params, jac, bounds=(lower_bounds, upper_bounds), xtol=1e-9, ftol=1e-9, max_nfev=5000, verbose=0)
+        opt_res = least_squares(
+            f,
+            init_params,
+            jac,
+            bounds=(lower_bounds, upper_bounds),
+            xtol=1e-9,
+            ftol=1e-9,
+            max_nfev=5000,
+            verbose=0,
+        )
     else:
-
-        # NLS optimisation for Beta polynomial
-        opt_res = least_squares(f, init_params, jac, xtol=1e-9, ftol=1e-9, max_nfev=5000, verbose=0)
+        opt_res = least_squares(
+            f,
+            init_params,
+            jac,
+            xtol=1e-9,
+            ftol=1e-9,
+            max_nfev=5000,
+            verbose=0,
+        )
 
     return opt_res
 
 
-def forecast_general(Xfc, yfcl, res, polys): # Function is an extended version of the functions from Zuskin (2020), and Sapphire (2020), see article for full references
+def forecast_general(Xfc, yfcl, res, polys):
+    """
+    Produces forecasts using the MIDAS model with estimated parameters.
 
-    '''
-    Makes a forecast using the MIDAS model.
+    Parameters:
+        Xfc (np.ndarray): Factor values for the current quarter (can be single or multiple forecasts)
+        yfcl (np.ndarray or None): Previous quarter GDP growth rate(s)
+        res (OptimizeResult): Estimated parameters from MIDAS model
+        polys (list): Polynomial weighting methods used
 
-            Parameters:
-                    Xfc: The factor values for the current quarter
-                    yfcl: Previous value growth of GDP
-                    res: The estimated parameters
-                    polys: The polynomial weighting methods that are used
-
-            Returns:
-                    yf: The prediction made
-    '''
-
-    # Extracts the weighting methods
+    Returns:
+        yf or yfs (float or np.ndarray): Forecasted value(s)
+    """
     weight_methods = [polynomial_weights(poly) for poly in polys]
 
-    # Extracts the optimal MIDAS coefficients estimated earlier
-    a = res.x[0]
+    a = res.x[0]  # Intercept
     num_regressors = len(weight_methods)
-    bs = res.x[1:num_regressors + 1]
-    thetas = res.x[num_regressors + 1:num_regressors + 1 + 2 * num_regressors]
-    lambdas = res.x[num_regressors + 1 + 2 * num_regressors:]
+    bs = res.x[1 : num_regressors + 1]
+    thetas = res.x[num_regressors + 1 : num_regressors + 1 + 2 * num_regressors]
+    lambdas = res.x[num_regressors + 1 + 2 * num_regressors :]
 
-
-    #making the forecast(s) using the intercept, the factors and possibly lag of y
-    if Xfc.ndim == 1: # In case only a single forecast is made
+    if Xfc.ndim == 1:  # Single forecast
         yf = a
         for i, weight_method in enumerate(weight_methods):
-            theta1, theta2 = thetas[2 * i:2 * i + 2]
-            xw, _ = weight_method.x_weighted(Xfc[i * 3:(i + 1) * 3], [theta1, theta2])
+            theta1, theta2 = thetas[2 * i : 2 * i + 2]
+            xw, _ = weight_method.x_weighted(Xfc[i * 3 : (i + 1) * 3], [theta1, theta2])
             yf += bs[i] * xw
 
         if yfcl is not None:
@@ -603,160 +641,159 @@ def forecast_general(Xfc, yfcl, res, polys): # Function is an extended version o
 
         return yf
 
-    elif Xfc.ndim == 2: # In case of multiple forecasts (like for training data)
-        nof = Xfc.shape[0]  # Number of forecasts
+    elif Xfc.ndim == 2:  # Multiple forecasts
+        nof = Xfc.shape[0]
         yfs = np.zeros((nof, 1))
 
         for j in range(nof):
             yf = a
             for i, weight_method in enumerate(weight_methods):
-                theta1, theta2 = thetas[2 * i:2 * i + 2]
-                xw, _ = weight_method.x_weighted(Xfc[j, i * 3:(i + 1) * 3], [theta1, theta2])
+                theta1, theta2 = thetas[2 * i : 2 * i + 2]
+                xw, _ = weight_method.x_weighted(Xfc[j, i * 3 : (i + 1) * 3], [theta1, theta2])
                 yf += bs[i] * xw
 
             if yfcl is not None:
                 for i in range(len(lambdas)):
                     yf += lambdas[i] * yfcl[j, i]
+
             yfs[j, 0] = yf
 
         return yfs
 
 
-def new_x_weighted(self, x, params): # Function is an extended version of the functions from Zuskin (2020), and Sapphire (2020), see article for full references
+def new_x_weighted(self, x, params):
+    """
+    Transforms higher-frequency data into lower-frequency using polynomial weights.
 
-    '''
-    Transforms the higher-frequency data into lower-frequency.
+    Parameters:
+        self: Instance of Beta polynomial weights class
+        x (np.ndarray): Higher-frequency regressor data
+        params (list or np.ndarray): Current parameter values [theta1, theta2]
 
-            Parameters:
-                    self: The Beta polynomial for the higher-frequency regressor
-                    x: The higher-frequency regressor
-                    params: The current parameters
-
-            Returns:
-                    result: The lower-frequency data
-    '''
+    Returns:
+        result (float or np.ndarray): Transformed lower-frequency data
+        weights (np.ndarray): Corresponding weights used
+    """
     self.theta1, self.theta2 = params
 
-    # Ensure x is 2D if it is 1D and make sure it's horizontal
+    # Ensure x is 2D
     if x.ndim == 1:
         x = x.reshape(1, -1)
 
-    # Weights are extracted via polynomial coefficients (x.shape[1] = M, the number of months per quarter)
+    # Calculate weights
     w = self.weights(x.shape[1])
 
-    # Data is transformed
+    # Weighted sum
     result = np.dot(x, w)
 
-    # Convert single-element array to a scalar
+    # Convert single-element array to scalar
     if result.size == 1:
         result = result.item()
 
+    # Repeat weights to match number of rows if needed
     return result, np.tile(w.T, (x.shape[0], 1))
 
 
-
 def ssr_generalized(a, X, y, yl, weight_methods, lambda_1):
+    """
+    Computes the sum of squared residuals with penalties for MIDAS estimation.
 
-    '''
-    Transforms the higher-frequency data into lower-frequency.
+    Parameters:
+        a (np.ndarray): Current parameter estimates (coefficients and polynomial params)
+        X (np.ndarray): High-frequency data
+        y (np.ndarray): Dependent variable
+        yl (np.ndarray or None): Lagged dependent variable
+        weight_methods (list): Polynomial weighting method instances
+        lambda_1 (float): Ridge penalty coefficient
 
-            Parameters:
-                    a: The current OLS estimates of X, the current polynomial weights, and possibly the current ylag OLS estimate
-                    X: The high-frequency data set
-                    y: The dependent variable (growth rate of GDP)
-                    yl: The first lag of the dependent variable (growth rate of GDP)
-                    weight_methods: The polynomial weighting methods that are used
-                    lambda_1: Ridge penalty on regressors of X to prevent overfitting of MIDAS
-
-            Returns:
-                    objective_value: The objective value outcome
-    '''
-
-    # Number of regressors is equal to number of weighting methods
+    Returns:
+        objective_value (float): Sum of squared residuals + penalties
+    """
     num_regressors = len(weight_methods)
-
-    # Initialises a list for storing products between regressors and their estimates
     products = []
-
-    # Intialises a list of the theta_parameter values
     theta_params = []
 
-    # For all regressors the lower-frequency variables of X are multiplied by the estimate
     for i in range(num_regressors):
         theta_start = 1 + i * 2 + num_regressors
         theta_end = theta_start + 2
         theta_params.extend(a[theta_start:theta_end])
 
-        xw, _ = weight_methods[i].x_weighted(X[:, i*3:(i+1)*3], a[theta_start:theta_end])
+        xw, _ = weight_methods[i].x_weighted(X[:, i * 3 : (i + 1) * 3], a[theta_start:theta_end])
         products.append(a[1 + i] * xw)
 
-    # The error made is the actual minus the prediction
     error = y - a[0] - sum(products)
 
-    # Adding the product of ylag with its coefficient if it exists
     if yl is not None:
-        error -= a[num_regressors]*yl
+        error -= a[num_regressors] * yl
 
     SSR = sum(error**2)
 
-    # Initialisation L2 penalty term on theta1 and theta2 which is needed for convergence
-    convergence_paramater = 0.01   # Small penalty on the theta parameters needed for convergence
+    convergence_param = 0.01  # Small penalty on theta params for convergence
 
-    # Objective value is SSR (OLS), the penalty on theta1 and theta2, and the ridge penalty
-    objective_value = SSR + lambda_1 * np.sum(np.array(a[1:num_regressors + 1]) ** 2) + convergence_paramater * sum(np.array(theta_params)**2)
+    objective_value = (
+        SSR
+        + lambda_1 * np.sum(np.array(a[1 : num_regressors + 1]) ** 2)
+        + convergence_param * sum(np.array(theta_params) ** 2)
+    )
 
     return objective_value
 
 
 def jacobian_generalized(a, X, y, yl, weight_methods):
+    """
+    Computes the Jacobian matrix for the MIDAS model given current parameter estimates.
 
-    '''
-    Returns the Jacobian matrix given the current estimates.
+    Parameters:
+        a (np.ndarray): Current parameters (coefficients + polynomial params)
+        X (np.ndarray): High-frequency data
+        y (np.ndarray): Dependent variable
+        yl (np.ndarray or None): Lagged dependent variable
+        weight_methods (list): Polynomial weighting method instances
 
-            Parameters:
-                    a: The current OLS estimates of X, the current polynomial weights, and possibly the current ylag OLS estimate
-                    X: The high-frequency data set
-                    y: The dependent variable (growth rate of GDP)
-                    yl: The first lag of the dependent variable (growth rate of GDP)
-                    weight_methods: The polynomial weighting methods that are used
-
-            Returns:
-                    jacobian: The Jacobian matrix
-    '''
-
-    # Number of regressors is equal to number of weighting methods
+    Returns:
+        jacobian (np.ndarray): Jacobian matrix of residuals
+    """
     num_regressors = len(weight_methods)
-
-    # Initialisation a list containing the different elements of the Jacobian
     jwx_all = []
-
-    # Initialisation of weighted regressors
     weighted_regressors = []
 
-    # For all regressors their Jacobian part is calculated
     for i in range(num_regressors):
         theta_start = 1 + i * 2 + num_regressors
         theta_end = theta_start + 2
-        jwx = jacobian_wx(X[:, i*3:(i+1)*3], a[theta_start:theta_end], weight_methods[i])
-        jwx_all.append(jwx)
-        xw, _ = weight_methods[i].x_weighted(X[:, i*3:(i+1)*3], a[theta_start:theta_end])
+        theta_i = a[theta_start:theta_end]
+
+        # Weighted regressors
+        xw, _ = weight_methods[i].x_weighted(X[:, i * 3 : (i + 1) * 3], theta_i)
         weighted_regressors.append(xw)
 
-    # The final Jacobian is constructed using the Jacobians of X, using potentially that of ylag, and using the current coefficients
-    if yl is None:
-        jac_e = np.ones((len(weighted_regressors[0]), 1))
-        for i in range(num_regressors):
-            jac_e = np.concatenate([jac_e, weighted_regressors[i].reshape((len(weighted_regressors[i]), 1))], axis=1)
-        for i in range(num_regressors):
-            jac_e = np.concatenate([jac_e, (a[1 + i] * jwx_all[i])], axis=1)
-        jacobian = -1.0 * jac_e
-    else:
-        jac_e = np.ones((len(weighted_regressors[0]), 1))
-        for i in range(num_regressors):
-            jac_e = np.concatenate([jac_e, weighted_regressors[i].reshape((len(weighted_regressors[i]), 1))], axis=1)
-        for i in range(num_regressors):
-            jac_e = np.concatenate([jac_e, (a[1 + i] * jwx_all[i])], axis=1)
-        jac_e = np.concatenate([jac_e, yl], axis=1)
-        jacobian = -1.0 * jac_e
+        # Jacobian of weighted regressors w.r.t theta
+        jwx = jacobian_wx(X[:, i * 3 : (i + 1) * 3], theta_i)
+        jwx_all.append(jwx)
 
-    return jacobian
+    # Error vector
+    error = y - a[0] - sum(a[1 + i] * weighted_regressors[i] for i in range(num_regressors))
+
+    if yl is not None:
+        error -= a[num_regressors] * yl
+
+    n = len(error)
+    num_params = len(a)
+    jac = np.zeros((n, num_params))
+
+    # Partial derivative w.r.t intercept
+    jac[:, 0] = -1
+
+    # Partial derivatives w.r.t slope coefficients
+    for i in range(num_regressors):
+        jac[:, 1 + i] = -weighted_regressors[i]
+
+    # Partial derivatives w.r.t polynomial parameters
+    for i in range(num_regressors):
+        idx = 1 + num_regressors + 2 * i
+        jac[:, idx : idx + 2] = -a[1 + i] * jwx_all[i]
+
+    # Partial derivatives w.r.t lag parameters (if any)
+    if yl is not None:
+        jac[:, num_regressors] = -yl
+
+    return jac
