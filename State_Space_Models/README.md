@@ -11,7 +11,7 @@ This project implements:
 
 ## ⚙️ Installation
 
-HAI!
+```
 pip install numpy scipy matplotlib pandas
 ```
 
