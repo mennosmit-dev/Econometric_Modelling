@@ -1,4 +1,4 @@
-*For all the details feel free to have a look at the pdf in the map.*
+**For all the details feel free to have a look at the pdf in the map.**
 
 # 📊 Forecasting with Bridge and MIDAS Models 🚀
 
