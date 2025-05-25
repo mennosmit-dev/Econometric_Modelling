@@ -1,4 +1,4 @@
-**This project was under supervision of Maverick Derrivatives. For details, feel free to download the pdf in the map for technical details and resulsts.**
+**This project was under supervision of Maverick Derrivatives. For details, feel free to download the pdf in the map for technical details and results.**
 
 
 # Trading Strategy Simulation with Residual-Based Positions
