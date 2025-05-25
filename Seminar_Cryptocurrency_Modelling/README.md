@@ -3,7 +3,7 @@
 
 # Trading Strategy Simulation with Residual-Based Positions
 
-## Overview
+## Overview 🚀
 
 This repository contains a Python implementation of a trading strategy that opens and closes long and short positions based on adjusted residuals from market data. The strategy manages exposure limits, tracks realized profit and loss (PnL), and supports visualization of PnL over time.
 
@@ -36,22 +36,21 @@ The input DataFrame **must** contain the following columns:
 
 ---
 
-## Installation & Setup
+## Installation & Setup 🛠️
 
 1. Clone this repository:
    ```bash
    git clone https://github.com/yourusername/your-repo.git
    cd your-repo
    ```
+   
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    (Make sure you have pandas, numpy, matplotlib, and logging installed.)
    ```
 
-## Installation & Setup
-
-Import and run the main strategy function (example):
+3. Import and run the main strategy function (example):
 
 import pandas as pd
 from strategy_module import process_trading_strategy  # Adjust import as per your file structure
@@ -59,13 +58,13 @@ from strategy_module import process_trading_strategy  # Adjust import as per you
 # Load your market data into a DataFrame 'df'
 df = pd.read_csv("market_data.csv")
 
-# Parameters
+# Parameters 🧪
 n_positions = 5
 starting_capital = 1_000_000
 residual_threshold = 0.01
 plot_pnl = True
 
-# Run strategy
+# Run strategy 📈
 trade_df, pnl_df, position_tracker = process_trading_strategy(
     df,
     n=n_positions,
@@ -74,16 +73,16 @@ trade_df, pnl_df, position_tracker = process_trading_strategy(
     plot=plot_pnl
 )
 
-# Save outputs if needed
+# Save outputs if needed 📝
 trade_df.to_csv("trades.csv", index=False)
 pnl_df.to_csv("pnl.csv", index=False)
 position_tracker.to_csv("positions.csv", index=False)
 
-# Function Details
-`process_trading_strategy(df, n, start_capital, threshold, plot=False)`
+# Function Details 💡
+`process_trading_strategy(df, n, start_capital, threshold, plot=False)`:
 Simulates the trading strategy with the given input DataFrame and parameters.
 
-## Parameters:
+## Parameters: 
 • df: Input DataFrame with required columns.
 
 • n: Number of positions to open per side (long/short).
@@ -94,7 +93,7 @@ Simulates the trading strategy with the given input DataFrame and parameters.
 
 • plot: If True, plots realized PnL over time.
 
-## Returns:
+## Returns: 
 
 • trade_df: DataFrame logging all trades executed.
 
@@ -102,7 +101,7 @@ Simulates the trading strategy with the given input DataFrame and parameters.
 
 • position_tracker: DataFrame of current open positions.
 
-# How It Works
+# How It Works 🔍
 
 • At each timestamp, the strategy evaluates residuals to determine overpriced and underpriced instruments.
 
@@ -114,6 +113,6 @@ Simulates the trading strategy with the given input DataFrame and parameters.
 
 • Realized PnL is tracked cumulatively and can be visualized.
 
-# Contributing
+# Contributing 🧑‍💻
 Contributions are welcome! Please open issues or submit pull requests to improve features, optimize performance, or add support for additional instruments.
 
