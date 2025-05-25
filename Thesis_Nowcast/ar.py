@@ -1,52 +1,63 @@
-'''This module contains the main program for nowcasting GDP using AR(1).'''
-
+"""
+This module contains the main program for nowcasting GDP using an AR(1) model.
+"""
 
 import numpy as np
 import pandas as pd
-import random
-import statsmodels.api as sm
-from sklearn.linear_model import Ridge
 
 # Initial Data Settings
-first_month_in_data = 241   # Is the first month in the training data, m = 241 corresponds to 1980-01, adjust accordingly
-start_month = 601  # Is the first out of sample vintage monthly data set, m = 601 corresponds to 2010-01, adjust accordingly
-end_month = 772   # Is the last out of sample vintage monthly data set, m = 772 corresponds to 2024-04
-OOS_obs = end_month - start_month  # Number of out-of-sample observations
-use_vintage_data = True  # Bool to indicate whether vintage data is used, or not (meaning only the last vintage data)
+FIRST_MONTH_IN_DATA = 241  # First month in training data (1980-01)
+START_MONTH = 601          # First out-of-sample vintage monthly data (2010-01)
+END_MONTH = 772            # Last out-of-sample vintage monthly data (2024-04)
+OOS_OBS = END_MONTH - START_MONTH  # Number of out-of-sample observations
+USE_VINTAGE_DATA = True    # Whether to use vintage data or only last vintage
 
-# Getting the last transformed quarterly vintage data needed to calculate error later
-prepare_current_data(end_month, first_month_in_data, use_vintage_data)
+# Prepare the last transformed quarterly vintage data to calculate errors later
+prepare_current_data(END_MONTH, FIRST_MONTH_IN_DATA, USE_VINTAGE_DATA)
 last_vintage_data_quarterly = pd.read_csv("/content/Transformed_Quarterly_Data.csv", header=None)
 
-# The current month is initialised
-current_month = start_month
+# Initialize current month and error storage array
+current_month = START_MONTH
+ar1_errors = np.zeros((OOS_OBS, 1))
 
-# Initialisation of array to AR(1) errors
-e_pred1 = np.zeros([OOS_obs, 1])
 
-# For all months in the out-of-sample an estimation is made
-for t in range(OOS_obs):
+def get_last_nonzero_element(df: pd.DataFrame) -> pd.Series:
+    """
+    Finds the last non-zero (non-NaN) element in a DataFrame column-wise.
 
-        # The current month is updated
-        current_month = start_month + t
+    Parameters:
+        df (pd.DataFrame): DataFrame from which to find the last nonzero element.
 
-        # For the current month the data is extracted and prepared for use
-        prepare_current_data(current_month, first_month_in_data, use_vintage_data)
-        current_data_quarterly = pd.read_csv("/content/Transformed_Quarterly_Data.csv", header=None)
+    Returns:
+        pd.Series: The last nonzero row (as a Series).
+    """
+    for i in range(1, len(df) + 1):
+        row = df.iloc[-i, :].dropna()
+        if not row.empty:
+            return row
+    return pd.Series(dtype=float)
 
-        # The value for next quarters GDP is accessed
-        quarters_to_go = last_vintage_data_quarterly.shape[0] - current_data_quarterly.shape[0]
-        actual_data = last_vintage_data_quarterly.iloc[last_vintage_data_quarterly.shape[0] - quarters_to_go]  # Access the actual transformed GDP we try to predict
 
-        # The last non-zero element is acces for AR(1) prediction
-        last_element = None
-        for i in range(1, len(current_data_quarterly) + 1):
-            potential_element = current_data_quarterly.iloc[-i, :].dropna() # Removing element if it is zero
-            if not potential_element.empty:
-                last_element = potential_element
-                break
-        e_pred1[t] = actual_data - last_element
+# Loop over all out-of-sample months and estimate AR(1) errors
+for t in range(OOS_OBS):
+    current_month = START_MONTH + t
 
-# Storing predictions errors
-e_pred1_df = pd.DataFrame(e_pred1)
-e_pred1_df.to_csv('/content/AR(1)_errors.csv', index=False, header=False)
+    # Prepare data for the current month
+    prepare_current_data(current_month, FIRST_MONTH_IN_DATA, USE_VINTAGE_DATA)
+    current_data_quarterly = pd.read_csv("/content/Transformed_Quarterly_Data.csv", header=None)
+
+    # Calculate quarters to go for actual GDP value to predict
+    quarters_to_go = last_vintage_data_quarterly.shape[0] - current_data_quarterly.shape[0]
+
+    # Access the actual GDP data to predict
+    actual_data = last_vintage_data_quarterly.iloc[last_vintage_data_quarterly.shape[0] - quarters_to_go]
+
+    # Get the last nonzero element for AR(1) prediction
+    last_element = get_last_nonzero_element(current_data_quarterly)
+
+    # Calculate AR(1) prediction error for this month
+    ar1_errors[t] = actual_data - last_element
+
+# Store AR(1) prediction errors to CSV file
+ar1_errors_df = pd.DataFrame(ar1_errors)
+ar1_errors_df.to_csv('/content/AR(1)_errors.csv', index=False, header=False)
