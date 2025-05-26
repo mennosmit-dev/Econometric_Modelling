@@ -80,9 +80,9 @@ For questions or collaboration, please open an issue or contact the author.
 
 ---
 
-HAI!```
+```
 # Copy this README.md file to your Git repo for best results.
-HAI!```
+```
 
 ---
 
