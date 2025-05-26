@@ -1,3 +1,5 @@
+**For details feel free to download the pdf.**
+
 # 📊 Stepwise Penalized Regression Models for GDP Forecasting 📈
 
 This Python script performs a multi-step regression analysis on GDP forecasting data using several penalized regression techniques (Lasso, Ridge, ElasticNet), combined with custom **egalitarian** weighting schemes and K-Fold cross-validation. It also implements the Diebold-Mariano test to compare predictive accuracy between models.
