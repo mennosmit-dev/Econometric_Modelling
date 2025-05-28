@@ -15,7 +15,7 @@ Welcome to this repository cointaining a small subset of my code from various ec
 ###📁 A few ML projects:
 - `Egalitarian_Lasso`: forecast combinations with Egalitarian Lasso
 - `IncomePredictingRandomForest`: income Prediction with random forest
-- `project.py`: custom batch gradient descent
+- `Optimising_Nonlinear_Function`: custom batch gradient descent
 - `project.py`:
 - `project.py`:
 
