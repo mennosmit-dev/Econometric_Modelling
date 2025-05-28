@@ -12,7 +12,7 @@ Welcome to this repository cointaining a small subset of my code from various ec
 - ☕ **DataFrame Project**  
   Developed in **Java**, following [Oracle's Java Code Conventions](https://www.oracle.com/java/technologies/javase/codeconventions-contents.html).
 
-###📁 A few ML projects:
+### 📁 A few ML projects:
 - `Egalitarian_Lasso`: forecast combinations with Egalitarian Lasso
 - `IncomePredictingRandomForest`: income Prediction with random forest
 - `Optimising_Nonlinear_Function`: custom batch gradient descent
