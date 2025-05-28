@@ -16,7 +16,7 @@ Welcome to this repository cointaining a small subset of my code from various ec
 - `Egalitarian_Lasso`: forecast combinations with Egalitarian Lasso
 - `IncomePredictingRandomForest`: income Prediction with random forest
 - `Optimising_Nonlinear_Function`: custom batch gradient descent
-- `project.py`:
+- `Thesis_Nowcast`: applying nonlinear mixed-frequency PCA
 - `project.py`:
 
 
