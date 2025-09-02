@@ -17,6 +17,7 @@ Welcome to this repository cointaining a small subset of my code from various ec
 - `IncomePredictingRandomForest`: income Prediction with random forest
 - `Optimising_Nonlinear_Function`: custom batch gradient descent
 - `Thesis_Nowcast`: applying nonlinear mixed-frequency PCA
+- `Seminar_Cryptocurrency_Modelling`: Forecasting cyrptocurrency prices and dveloping a coherent trading strategy.
 
 
 
