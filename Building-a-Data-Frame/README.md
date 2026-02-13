@@ -1,14 +1,36 @@
-# 📊 Java Data Analytics & Sampling Toolkit
+# Java Data Analytics & Sampling Toolkit
 
-This toolkit provides utilities for basic statistical analysis and data sampling in Java using Apache Commons Math.
+Lightweight Java utilities for statistical analysis, tabular data manipulation, 
+and synthetic data generation built on top of Apache Commons Math.
 
-## Features
+This toolkit was developed to explore object-oriented implementations of 
+statistical workflows and reusable data structures in Java.
 
-- 📈 Statistical operations: t-tests, Pearson correlation, descriptive stats, linear regression.
-- 📊 Tabular numeric data structure: filter, extend, and compute on rows/columns.
-- 🔄 Sample synthetic data using Uniform, Gaussian, and Exponential distributions.
+---
 
-## Quick Example
+## 🧠 Overview
+
+Core capabilities:
+
+- Statistical analysis:
+  - t-tests
+  - Pearson correlation
+  - descriptive statistics
+  - linear regression
+
+- Tabular numeric data structure:
+  - column-based filtering
+  - row/column operations
+  - extendable datasets
+
+- Synthetic data generation:
+  - Uniform distribution
+  - Gaussian distribution
+  - Exponential distribution
+
+---
+
+## 🚀 Example
 
 ```java
 NumericTable table = new NumericTable(
@@ -18,7 +40,6 @@ NumericTable table = new NumericTable(
 
 DataAnalytics analytics = new DataAnalytics(table);
 System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0
-```
 
 ## Requirements
 
@@ -33,7 +54,4 @@ Follow these steps to get started with the Java Data Analytics Toolkit:
    Ensure you have Java 8+ installed. You can check by running:  
    ```bash
    java -version
-
-## Disclaimer
-**Disclaimer: Although I have extensive programming experience in Java, which I gained through bi-weekly practical projects in 'Introduction to Programming' and 'Programming' which focused on object-orientated programming, Most of these projects I cannot find in memory anymore.**
 
