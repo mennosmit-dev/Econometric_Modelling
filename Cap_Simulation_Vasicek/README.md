@@ -1,48 +1,74 @@
-# Cap Pricing Using the Vasicek Model
+# Vasicek Cap Pricing – Monte Carlo Simulation
 
-This repository contains a Python implementation to simulate the price of an interest rate cap, where the underlying floating interest rate is modeled by a **1-factor Vasicek model**.
+This repository contains a Python implementation for pricing an interest rate cap 
+using a **one-factor Vasicek short-rate model** and Monte Carlo simulation.
 
----
-
-## 📋 Description
-
-The code simulates the price of a cap contract based on a three-year yield. The Vasicek model captures the evolution of short-term interest rates with mean reversion.
-
-- **t = 0**: Current time (now)
-- **T₀ = 1**: First settlement date
-- **T₁, T₂, ..., T_T**: Payout and reset dates
-
-### Key Parameters
-
-| Symbol | Meaning                              |
-|--------|------------------------------------|
-| `r_0`  | Initial short rate                  |
-| `kappa`| Mean reversion rate                 |
-| `mu`   | Long-term average short rate       |
-| `sigma`| Volatility of the short rate       |
-| `R`    | Number of simulation repetitions   |
-| `delta`| Time step size within each year    |
-| `T`    | Total time (years) until contract end |
-| `K`    | Strike rate of the cap              |
+The project explores mean-reverting interest rate dynamics and discounted payoff 
+evaluation for fixed-income derivatives.
 
 ---
 
-## 💡 How It Works
+## 🧠 Overview
 
-The `main` function runs Monte Carlo simulations to estimate the cap price by:
+Core components:
 
-1. Simulating short rate paths with mean reversion and volatility.
-2. Calculating the Vasicek yield for payout dates.
-3. Computing discounted payoffs when the yield exceeds the strike.
-4. Averaging the payoffs over all simulation runs.
+- Short-rate simulation under the Vasicek model
+- Monte Carlo pricing framework
+- Yield curve calculation from simulated short rates
+- Discounted payoff evaluation for cap contracts
 
-The helper function `get_vasicek_yield` computes the theoretical yield at time *t* given the short rate and model parameters.
+The implementation demonstrates stochastic interest rate modeling and 
+derivative pricing verification through repeated simulation.
 
 ---
 
-## ⚙️ Usage
+## 📐 Model Setup
+dr_t = κ(μ − r_t) dt + σ dW_t
+Key parameters:
 
-Run the script directly to see the estimated cap price printed out:
+| Parameter | Description |
+|-----------|-------------|
+| `r_0`     | Initial short rate |
+| `kappa`   | Mean reversion speed |
+| `mu`      | Long-term rate level |
+| `sigma`   | Volatility |
+| `delta`   | Time step size |
+| `T`       | Contract maturity |
+| `K`       | Cap strike |
+| `R`       | Number of simulation paths |
+
+---
+
+## ⚙️ Implementation Details
+
+Main workflow:
+
+1. Simulate short-rate paths using discretized Vasicek dynamics.
+2. Compute yields at reset dates.
+3. Evaluate cap payoffs when the rate exceeds the strike.
+4. Discount and average payoffs across simulation paths.
+
+Helper function:
+
+- `get_vasicek_yield()` — computes model-implied yield from short rates.
+
+---
+
+## 🚀 Usage
 
 ```bash
 python vasicek_cap_pricing.py
+```
+The script prints the estimated cap price from Monte Carlo simulations.
+
+## 🔧 Tech Stack
+
+Python • NumPy • Monte Carlo Simulation • Quantitative Finance
+
+## 📌 Context
+
+This project complements my broader quantitative modeling work,
+including econometric forecasting, reinforcement learning for asset management,
+and applied machine learning in financial markets.
+
+Short-rate dynamics:
