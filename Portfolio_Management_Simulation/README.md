@@ -1,45 +1,74 @@
-# Portfolio Optimization & Performance Metrics 📈💼
+# Portfolio Optimization & Performance Metrics
 
-This Python script calculates and compares different portfolio weights and their performance metrics based on a factor model and mean-variance optimization principles.
+Python implementation of factor-based portfolio optimization using 
+mean–variance principles and classical asset pricing theory.
 
----
-
-## 🔧 What it Does
-It computes expected returns, variance, and certainty equivalent for portfolios, and calculates weights for Mean-Variance (MV), Certainty Equivalent (CE), Global Minimum Variance (GMV), and Equal Weight (EW) portfolios. Key metrics like expected return (`mu`), volatility (`vol`), Sharpe ratio (`sh`), and certainty equivalent (`ce`) are printed for each portfolio.
-
-The script uses a factor model with a single factor (`beta`) influencing asset returns, calculates the covariance matrix combining factor variance and idiosyncratic risk, applies matrix operations for optimization, and includes a risk aversion parameter for the CE portfolio.
+The script evaluates multiple portfolio construction strategies and compares 
+their risk-return characteristics using analytical optimization and matrix-based calculations.
 
 ---
 
-## 🧮 Parameters
-- `N`: Number of assets (default 10)
-- `beta`: Factor loadings for each asset
-- `mu_f`: Expected factor return (0.1)
-- `sigma_f`: Factor volatility (0.2)
-- `error_covariance_matrix`: Diagonal matrix of idiosyncratic risk
-- `risk_aversion`: Investor’s risk aversion (default 2)
+## 🧠 Overview
+
+Implemented portfolio strategies:
+
+- Mean–Variance (MV) Portfolio
+- Certainty Equivalent (CE) Portfolio
+- Global Minimum Variance (GMV) Portfolio
+- Equal Weight (EW) Portfolio
+
+For each strategy, the following metrics are computed:
+
+- Expected return (`mu`)
+- Volatility (`vol`)
+- Sharpe ratio (`sh`)
+- Certainty equivalent (`ce`)
+
+The implementation uses a single-factor model to construct the covariance matrix 
+and incorporates idiosyncratic risk components.
 
 ---
 
-## 💡 Portfolio Metrics
+## 📐 Model Setup
 
-Portfolio metrics include expected return (`mu`), volatility (`vol`), Sharpe ratio (`sh`), and certainty equivalent (`ce`).
+Key elements:
+
+- Factor model with loadings (`beta`)
+- Expected factor return (`mu_f`)
+- Factor volatility (`sigma_f`)
+- Idiosyncratic error covariance
+- Investor risk aversion parameter
+
+The covariance matrix combines systematic factor risk with asset-specific variance.
 
 ---
 
-## 🚀 How to Run
+## ⚙️ Implementation Details
 
-To run, use Python 3 with NumPy installed:
+Workflow:
+
+1. Construct expected returns from the factor model.
+2. Build covariance matrix from factor exposure and residual risk.
+3. Compute analytical portfolio weights for each strategy.
+4. Evaluate performance metrics and print results.
+
+---
+
+## 🚀 Usage
+
 ```bash
-    python portfolio_optimization.py
+python portfolio_optimization.py
 ```
+Requires Python 3 and NumPy.
 
----
+## 🔧 Tech Stack
 
-# Dependencies:
-- Python 3.x
-- NumPy (`pip install numpy`)
+Python • NumPy • Quantitative Finance • Portfolio Theory
 
-This script implements classical portfolio theory concepts based on CAPM and mean-variance optimization frameworks.
+## 📌 Context
+
+This project complements my broader work in quantitative modeling,
+reinforcement learning for portfolio management, and econometric forecasting,
+demonstrating classical optimization methods in asset allocation.
 
 
