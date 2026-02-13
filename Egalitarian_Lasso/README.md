@@ -82,10 +82,3 @@ For questions or collaboration, please open an issue or contact the author.
 
 ---
 
-```
-# Copy this README.md file to your Git repo for best results.
-```
-
----
-
-If you want me to generate a fully formatted **README.md** file ready to drop in your repo, just say!
