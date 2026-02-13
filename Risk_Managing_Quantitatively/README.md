@@ -64,27 +64,27 @@ python portfolio_risk_analysis.py
 Python • NumPy • Pandas • SciPy • ARCH • Matplotlib • Copulas
 
 ## 📐 Methodology Summary
-# Variance–Covariance
+### Variance–Covariance
 
 Parametric VaR assuming normally distributed portfolio returns.
 
-# Historical Simulation
+### Historical Simulation
 
 Non-parametric VaR based on empirical return quantiles.
 
-# Normal Mixture Model
+### Normal Mixture Model
 
 Two-component Gaussian mixture fitted using EM to capture regime behavior.
 
-# Extreme Value Theory (EVT)
+### Extreme Value Theory (EVT)
 
 Hill estimator applied to model tail risk and extreme losses.
 
-# GARCH(1,1)
+### GARCH(1,1)
 
 Time-varying volatility estimation for conditional risk forecasting.
 
-# Clayton Copula
+### Clayton Copula
 
 Dependence modeling via copula simulation for multivariate tail behavior.
 
