@@ -1,74 +1,80 @@
-**For all the technical details and results feel free to have a look at the pdf in the map.**
+# Mixed-Frequency Forecasting with Bridge and MIDAS Models
 
-# 📊 Forecasting with Bridge and MIDAS Models 🚀
+Implementation of mixed-frequency forecasting methods using:
 
-This repository contains Python code implementing forecasting methods using **Bridge regression** and **MIDAS** (Mixed Data Sampling) approaches. The code performs hyperparameter tuning, prediction, and error calculation across different models, storing results and saving them to CSV files for further analysis.
+- Bridge regression
+- MIDAS (Mixed Data Sampling) with Beta polynomial weights (MIDAS-b)
+- MIDAS with Exponential Almon weights (MIDAS-e)
 
----
-
-## 🔍 Overview
-
-The script follows these main steps:
-
-- 🗂️ Load and prepare monthly and quarterly time series data.
-- ⚙️ Perform hyperparameter grid search to identify optimal parameters for three regression models:
-  - 🌉 Bridge regression
-  - 🧩 MIDAS-b (Beta polynomial weights)
-  - 🔄 MIDAS-e (Exponential Almon polynomial weights)
-- 📈 Use lag-augmented factor data to train models and make predictions.
-- 📉 Calculate and store Mean Squared Prediction Errors (MSPE).
-- 🧹 Impute missing data in monthly datasets for unknown months in quarters.
-- 💾 Save all results including errors and predictions to CSV files.
+The project focuses on forecasting quarterly variables using higher-frequency
+monthly indicators, including hyperparameter tuning, prediction, and
+out-of-sample evaluation.
 
 ---
 
-## 🛠️ Code Structure
+## 🧠 Overview
+
+Key components of the workflow:
+
+- Alignment of monthly and quarterly time series
+- Construction of lag-augmented factor datasets
+- Hyperparameter grid search across mixed-frequency models
+- Out-of-sample forecasting and Mean Squared Prediction Error (MSPE) evaluation
+- Automated storage of predictions and performance metrics
+
+Models implemented:
+
+- **Bridge Regression**
+- **MIDAS-b** (Beta polynomial weighting)
+- **MIDAS-e** (Exponential Almon weighting)
+
+---
+
+## ⚙️ Methodology
 
 ### Data Preparation
-- 🔄 Align monthly and quarterly data series.
-- ⏳ Compute lagged factors and construct training and testing datasets for each forecast horizon.
+- Synchronization of mixed-frequency datasets
+- Lag construction for monthly indicators
+- Handling of missing monthly observations within quarterly periods
 
-### Model Training and Hyperparameter Tuning
-- 🌉 **Bridge regression**: Tune `gamma`, `eta`, and polynomial order `p`.
-- 🧩 **MIDAS-b**: Tune Beta polynomial hyperparameters.
-- 🔄 **MIDAS-e**: Tune Exponential Almon polynomial hyperparameters.
+### Model Estimation
+Hyperparameters tuned via grid search:
 
-### Prediction and Error Calculation
-- 🎯 Make forecasts for each horizon and store errors.
-- 📊 Calculate MSPE for each model and horizon.
-- 🗃️ Store predictions and errors in CSV files for review.
+- Bridge regression: γ, η, polynomial order p
+- MIDAS-b: Beta polynomial parameters
+- MIDAS-e: Exponential Almon parameters
 
----
-
-## 🚀 Usage
-
-1. ✅ Ensure required packages are installed (e.g., `numpy`, `pandas`, `scipy`).
-2. 📥 Load your monthly and quarterly data into the expected formats.
-3. ⚙️ Adjust hyperparameter grids if needed.
-4. ▶️ Run the script to perform hyperparameter tuning and forecasting.
-5. 📂 Check output CSV files for errors and predictions.
+### Evaluation
+- Multi-horizon forecasting
+- Mean Squared Prediction Error (MSPE)
+- Storage of optimal parameters and prediction outputs
 
 ---
 
-## 💡 Code Snippet Example
+## 🗂️ Outputs
 
-```
-# Example: Hyperparameter grid search for Bridge regression
-for gamma in gamma_values:
-    for eta in eta_values:
-        for p in p_values:
-            # Train model, predict, and compute MSPE
-            ...
-```
+The script generates:
+
+- Prediction files per model and horizon
+- MSPE evaluation metrics
+- Optimal hyperparameter selections
 
 ---
 
-## 📈 Results
+## 🔧 Tech Stack
 
-Results include:
-
-- 🏆 MSPE values for each model and horizon.
-- 🔧 Optimal hyperparameters selected by lowest MSPE.
-- 📊 Predictions stored for evaluation.
+Python • NumPy • Pandas • SciPy  
+Time-Series Econometrics • Mixed-Frequency Modeling • Forecast Evaluation
 
 ---
+
+## 📌 Context
+
+This project demonstrates mixed-frequency econometric forecasting techniques
+commonly used in macroeconomic nowcasting and financial time-series modeling.
+It complements my broader work in:
+
+- dynamic factor models
+- state-space estimation
+- portfolio and trading models
+- reinforcement learning for financial decision-making
