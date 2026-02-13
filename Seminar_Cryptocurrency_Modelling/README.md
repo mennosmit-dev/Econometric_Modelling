@@ -1,118 +1,96 @@
-**This project was under supervision of Maverick Derrivatives. For details, feel free to download the pdf in the map for technical details and results.**
+# Residual-Based Trading Strategy Simulation
 
+Python implementation of a systematic trading strategy developed under supervision 
+of **Maverick Derivatives**, focusing on residual-based mispricing signals, 
+dynamic position management, and risk-controlled execution.
 
-# Trading Strategy Simulation with Residual-Based Positions
-
-## Overview 🚀
-
-This repository contains a Python implementation of a trading strategy that opens and closes long and short positions based on adjusted residuals from market data. The strategy manages exposure limits, tracks realized profit and loss (PnL), and supports visualization of PnL over time.
-
-The approach leverages data on residuals, bid/ask prices, and tenor to decide when to open or close positions, aiming to capitalize on pricing inefficiencies.
+The strategy opens and closes long/short positions based on adjusted residuals, 
+tracks realized PnL, and enforces exposure constraints across instruments.
 
 ---
 
-## Features
+## 🧠 Overview
 
-- Processes timestamped market data with adjusted residuals.
-- Opens and closes positions dynamically based on residual signals and tenor.
-- Tracks dollar exposure and net positions for multiple products.
-- Calculates realized PnL continuously.
-- Manages position sizing and exposure limits for risk control.
-- Optional visualization of realized PnL over time.
-- Outputs detailed trade logs, PnL history, and current positions.
+Core components:
 
----
+- Residual-driven signal generation
+- Dynamic long/short position management
+- Exposure and capital constraints
+- Realized PnL tracking and visualization
+- Trade logging and position monitoring
 
-## Data Requirements
-
-The input DataFrame **must** contain the following columns:
-
-- `df_filename` — Identifier for the product/instrument.
-- `timestamp` — Timestamp of the market snapshot.
-- `Tenor` — Time to maturity (in years).
-- `adjusted_residual` — Residual value indicating mispricing.
-- `Ask price` — Current ask price.
-- `Bid price` — Current bid price.
+The objective is to exploit pricing inefficiencies while maintaining 
+controlled risk exposure.
 
 ---
 
-## Installation & Setup 🛠️
+## 📂 Strategy Logic
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/yourusername/your-repo.git
-   cd your-repo
-   ```
-   
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   (Make sure you have pandas, numpy, matplotlib, and logging installed.)
-   ```
+At each timestamp:
 
-3. Import and run the main strategy function (example):
+1. Evaluate adjusted residuals across instruments.
+2. Identify underpriced (long) and overpriced (short) opportunities.
+3. Open positions subject to exposure and capital limits.
+4. Close positions when residuals revert or maturity approaches.
+5. Update realized PnL and portfolio state.
 
+---
+
+## 📊 Data Requirements
+
+Input DataFrame must include:
+
+- `df_filename` — Instrument identifier
+- `timestamp` — Market snapshot time
+- `Tenor` — Time to maturity
+- `adjusted_residual` — Mispricing signal
+- `Ask price` — Execution ask
+- `Bid price` — Execution bid
+
+---
+
+## ⚙️ Usage
+
+```python
+from strategy_module import process_trading_strategy
 import pandas as pd
-from strategy_module import process_trading_strategy  # Adjust import as per your file structure
 
-# Load your market data into a DataFrame 'df'
 df = pd.read_csv("market_data.csv")
 
-# Parameters 🧪
-n_positions = 5
-starting_capital = 1_000_000
-residual_threshold = 0.01
-plot_pnl = True
-
-# Run strategy 📈
 trade_df, pnl_df, position_tracker = process_trading_strategy(
     df,
-    n=n_positions,
-    start_capital=starting_capital,
-    threshold=residual_threshold,
-    plot=plot_pnl
+    n=5,
+    start_capital=1_000_000,
+    threshold=0.01,
+    plot=True
 )
+```
+Outputs:
 
-# Save outputs if needed 📝
-trade_df.to_csv("trades.csv", index=False)
-pnl_df.to_csv("pnl.csv", index=False)
-position_tracker.to_csv("positions.csv", index=False)
+trade_df — Executed trades
 
-# Function Details 💡
-`process_trading_strategy(df, n, start_capital, threshold, plot=False)`:
-Simulates the trading strategy with the given input DataFrame and parameters.
+pnl_df — Realized PnL over time
 
-## Parameters: 
-• df: Input DataFrame with required columns.
+position_tracker — Current open positions
 
-• n: Number of positions to open per side (long/short).
+## 🔧 Tech Stack
 
-• start_capital: Initial capital allocation.
+Python • Pandas • NumPy • Quantitative Trading • Risk Management
 
-• threshold: Minimum residual magnitude to trigger trades.
+## 📌 Context
 
-• plot: If True, plots realized PnL over time.
+This project was developed during a quantitative research collaboration
+with Maverick Derivatives and complements my broader work in:
+- reinforcement learning for portfolio management
+- econometric forecasting
+- systematic trading strategy design
 
-## Returns: 
+For technical details and results, see the accompanying project PDF.
 
-• trade_df: DataFrame logging all trades executed.
 
-• pnl_df: DataFrame of realized PnL across timestamps.
 
-• position_tracker: DataFrame of current open positions.
 
-# How It Works 🔍
 
-• At each timestamp, the strategy evaluates residuals to determine overpriced and underpriced instruments.
-
-• Positions are opened for the most underpriced (long) and overpriced (short) products.
-
-• Positions are closed if residuals revert or the instrument nears maturity.
-
-• Position sizes are limited to avoid exceeding risk and capital constraints.
-
-• Realized PnL is tracked cumulatively and can be visualized.
-
-# Contributing 🧑‍💻
-Contributions are welcome! Please open issues or submit pull requests to improve features, optimize performance, or add support for additional instruments.
-
+    threshold=0.01,
+    plot=True
+)
