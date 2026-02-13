@@ -41,17 +41,17 @@ using multipliers, enabling efficient approximation of lower bounds.
 Computes the Lagrangian objective value and corresponding solution
 for a given multiplier vector.
 
-# 🔹 ComputeNextLambda
+### 🔹 ComputeNextLambda
 
 Updates Lagrangian multipliers using a subgradient step based on
 constraint violations.
 
-# 🔹 ConvertInfeasToFeas
+### 🔹 ConvertInfeasToFeas
 
 Transforms infeasible solutions into feasible primal solutions
 using a greedy repair heuristic.
 
-# 🔹 PerformSubgradientOptimization
+### 🔹 PerformSubgradientOptimization
 
 Runs the full subgradient optimization loop to iteratively improve
 dual bounds and track convergence behavior.
