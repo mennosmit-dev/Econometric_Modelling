@@ -24,6 +24,7 @@ derivative pricing verification through repeated simulation.
 
 ## 📐 Model Setup
 dr_t = κ(μ − r_t) dt + σ dW_t
+
 Key parameters:
 
 | Parameter | Description |
