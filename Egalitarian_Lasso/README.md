@@ -1,84 +1,103 @@
-**For details feel free to download the pdf.**
+# Stepwise Penalized Regression Models for GDP Forecasting
 
-# 📊 Stepwise Penalized Regression Models for GDP Forecasting 📈
+This project implements a multi-step econometric forecasting framework for GDP prediction 
+using penalized regression techniques and forecast evaluation metrics.
 
-This Python script performs a multi-step regression analysis on GDP forecasting data using several penalized regression techniques (Lasso, Ridge, ElasticNet), combined with custom **egalitarian** weighting schemes and K-Fold cross-validation. It also implements the Diebold-Mariano test to compare predictive accuracy between models.
-
----
-
-## 🚀 Features
-
-- Data preprocessing and transformation of GDP forecasting data
-- K-Fold cross-validation to tune regularization parameters (lambda) for Lasso, Ridge, and ElasticNet models
-- Stepwise modeling:
-  - Step 1: Lasso for feature selection
-  - Step 2: Various penalized regression models on selected features with:
-    - Egalitarian weighting adjustment (egalitarian Lasso, Ridge, ElasticNet)
-    - RMSE-based weighting models
-- Calculation of Root Mean Squared Error (RMSE) for model performance evaluation
-- Implementation of Diebold-Mariano test to statistically compare forecasting models
+The pipeline combines feature selection, regularized regression, custom egalitarian weighting, 
+and statistical comparison via the Diebold–Mariano test to assess predictive performance.
 
 ---
 
-## 🛠️ Requirements
+## 🧠 Overview
 
-- Python 3.7+
+Key components of the workflow:
+
+- Stepwise modeling pipeline
+- Penalized regression methods:
+  - Lasso
+  - Ridge
+  - ElasticNet
+- Egalitarian coefficient adjustment
+- RMSE-based model weighting
+- K-Fold cross-validation for hyperparameter tuning
+- Diebold–Mariano tests for forecast comparison
+
+The objective is to evaluate whether structured regularization and egalitarian weighting 
+improve multi-step GDP forecasting accuracy.
+
+---
+
+## 📂 Methodology
+
+### 🔹 Step 1 — Feature Selection
+
+- Lasso regression used to identify informative predictors.
+- Cross-validation applied to determine optimal regularization strength.
+
+### 🔹 Step 2 — Penalized Forecast Models
+
+Models trained on selected features:
+
+- Standard penalized regressions
+- Egalitarian-adjusted variants
+- RMSE-weighted combinations
+
+### 🔹 Step 3 — Model Evaluation
+
+- Root Mean Squared Error (RMSE) used for performance comparison.
+- Diebold–Mariano tests applied to assess statistical differences 
+  in forecast accuracy between model variants.
+
+---
+
+## ⚙️ Requirements
+
+Python 3.7+
+
+Core libraries:
+
 - numpy
 - pandas
 - scikit-learn
 - matplotlib
-- google.colab (for file upload interface in Google Colab)
-- `dm_test` module (custom or provided separately)
+
+Optional:
+
+- dm_test (Diebold–Mariano implementation)
+- Jupyter Notebook or Google Colab
 
 ---
 
-## 📁 Usage
+## 🚀 Usage
 
-1. Upload your dataset (e.g., `H1_gdp.csv`) into the environment or specify the path in the code.
-
-2. Run the script in a Python environment (Colab, Jupyter, or local).
-
-3. The script will output:
-   - Optimal lambda values for each model after cross-validation
-   - Indices of selected features by Lasso
-   - RMSE scores for each model variant
-   - Results from Diebold-Mariano tests comparing forecast accuracy
+1. Provide a dataset (e.g., `H1_gdp.csv`).
+2. Run the script in a Python environment.
+3. Outputs include:
+   - Optimal regularization parameters
+   - Selected features
+   - RMSE comparison across models
+   - Diebold–Mariano statistical test results
 
 ---
 
-## 🔧 Functions
+## 🔧 Key Functions
 
-- `cross_validate_lasso(X, y, lambdas, n_splits=5)`: Tunes lambda for Lasso using K-Fold CV  
-- `cross_validate_ridge(X, y, lambdas, n_splits=5)`: Tunes lambda for Ridge using K-Fold CV  
-- `cross_validate_en(X, y, lambdas, n_splits=5)`: Tunes lambda for ElasticNet using K-Fold CV  
-- `egalitarian_transform(coefs)`: Adjusts coefficients to promote equal contribution among selected features  
-
----
-
-## ⚙️ Notes
-
-- The egalitarian transform simply adds an equal share to all coefficients to promote balanced feature contributions.
-- The constant `c` controls the weighting for RMSE models and can be adjusted for experimentation.
-- This script is designed to be modular and easily adapted to different datasets and model tuning parameters.
+- `cross_validate_lasso()` — Lasso hyperparameter tuning  
+- `cross_validate_ridge()` — Ridge hyperparameter tuning  
+- `cross_validate_en()` — ElasticNet hyperparameter tuning  
+- `egalitarian_transform()` — coefficient balancing adjustment  
 
 ---
 
 ## 📚 References
 
-- Friedman, Hastie, Tibshirani (2010). Regularization Paths for Generalized Linear Models via Coordinate Descent. Journal of Statistical Software.
-- Diebold, Mariano (1995). Comparing Predictive Accuracy. Journal of Business & Economic Statistics.
+- Friedman, Hastie, Tibshirani (2010) — Regularization Paths for GLMs  
+- Diebold & Mariano (1995) — Comparing Predictive Accuracy
 
 ---
 
-## 🤝 Contributing
+## 📌 Context
 
-Feel free to fork and submit pull requests for improvements or bug fixes!
-
----
-
-## 📫 Contact
-
-For questions or collaboration, please open an issue or contact the author.
-
----
-
+This project forms part of a broader econometric modeling workflow 
+focusing on structured forecast combination, regularization methods, 
+and quantitative macroeconomic modeling.
