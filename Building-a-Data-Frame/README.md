@@ -39,7 +39,8 @@ NumericTable table = new NumericTable(
 );
 
 DataAnalytics analytics = new DataAnalytics(table);
-System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0```
+System.out.println(analytics.pearsonsCorrelation("x", "y"));  // Output: ~1.0
+```
 
 ## Requirements
 
