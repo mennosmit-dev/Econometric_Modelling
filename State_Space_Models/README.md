@@ -1,73 +1,93 @@
-# 🚀 Kalman Filter & EM Algorithm for ARMA(1,1) and Dynamic Factor Models 📈
+# Kalman Filtering & EM Estimation for ARMA and Dynamic Factor Models
 
-This project implements:
+Implementation of state-space modeling techniques including:
 
-- 🔍 Kalman Filtering for univariate ARMA(1,1) models  
-- 📊 Maximum Likelihood Estimation (MLE) of ARMA parameters  
-- 🤖 EM Algorithm for Dynamic Factor Models (DFMs) on multivariate data  
-- 📉 Visualizations of state estimates, residuals, and latent factors  
+- Kalman filtering and smoothing for ARMA(1,1)
+- Maximum Likelihood Estimation (MLE) of state-space parameters
+- Expectation-Maximization (EM) algorithm for Dynamic Factor Models (DFMs)
+- Latent factor extraction from multivariate time series
 
----
-
-## ⚙️ Installation
-
-```
-pip install numpy scipy matplotlib pandas
-```
+This project focuses on likelihood-based estimation, latent state inference, and 
+time-series modeling using state-space representations.
 
 ---
 
-## 🛠️ Usage
+## 🧠 Overview
 
-### ARMA(1,1) with Kalman Filter
+### 1️⃣ ARMA(1,1) via State-Space Representation
 
-- 🧮 Estimate ARMA parameters via MLE  
-- 📈 Filter and smooth states  
-- 📊 Plot observations, state estimates, residuals  
+- Reformulated ARMA(1,1) as a state-space model
+- Implemented Kalman filter for likelihood evaluation
+- Estimated parameters via numerical optimization (MLE)
+- Applied smoothing to recover latent states
+- Analyzed residual behavior and model fit
 
-Example:
+Core outputs:
 
-```
-result = minimize(negative_log_likelihood_LL_ARMA, initial_guess, args=(y,), bounds=bounds, method='SLSQP', tol=1e-8)
-phi_ML, theta_ML, Q_ML, R_ML = result.x
-print(f"phi_ML: {phi_ML}, theta_ML: {theta_ML}, Q_ML: {Q_ML}, R_ML: {R_ML}")
-```
-
----
-
-## 🔄 EM Algorithm for Dynamic Factor Model
-
-- 🕵️‍♂️ Extract latent common factors from multivariate time series  
-- 🔁 Iteratively perform E-step (Kalman smoothing) and M-step (parameter update)  
-- 📈 Track log-likelihood convergence  
-
-Example:
-
-```
-Lambda, Sigma, phi, sigma_eta2, f_smoothed, f_filt, logL_history, f_filt_mean = EM_DynamicFactorModel(y, max_iter=1000)
-print("Estimated Lambda:", Lambda)
-print("Estimated Sigma:", Sigma)
-print("Estimated phi:", phi)
-print("Estimated sigma_eta2:", sigma_eta2)
-```
+- Estimated parameters (φ, θ, Q, R)
+- Filtered and smoothed states
+- Log-likelihood evaluation
+- Diagnostic visualizations
 
 ---
 
-## 📊 Visualization
+### 2️⃣ Dynamic Factor Model (EM Algorithm)
 
-Plot Kalman filter results and factors:
+Implemented a one-factor Dynamic Factor Model for multivariate time series:
 
-```
-plot_kalman_results(T, y, predicted_xi, xi, eta_prev)
-plot_factors(y, f_filt, f_smoothed)
-```
+- E-step: Kalman smoothing to estimate latent factors
+- M-step: Closed-form parameter updates
+- Log-likelihood tracking for convergence monitoring
+
+Estimated components:
+
+- Factor loadings (Λ)
+- Idiosyncratic variance (Σ)
+- Factor AR coefficient (φ)
+- Factor innovation variance (σ²η)
+
+---
+
+## ⚙️ Implementation Structure
+
+- `kalman_arma.py`  
+  State-space representation, Kalman filter, log-likelihood computation, and MLE optimization.
+
+- `dynamic_factor_em.py`  
+  EM algorithm for latent factor estimation using Kalman smoothing.
+
+- `plotting.py`  
+  Visualization utilities for states, residuals, and extracted factors.
 
 ---
 
-## 🗂️ File Overview
+## 🔬 Methods Applied
 
-- `kalman_arma.py` — Kalman filter, log-likelihood, and parameter optimization  
-- `dynamic_factor_em.py` — EM algorithm and Kalman smoother for factor estimation  
-- `plotting.py` — Functions to visualize states, residuals, and factors  
+- State-space modeling
+- Kalman filtering & smoothing
+- Maximum likelihood estimation
+- EM algorithm
+- Latent factor extraction
+- Numerical optimization (SLSQP)
 
 ---
+
+## 🔧 Tech Stack
+
+Python • NumPy • SciPy • Pandas • Matplotlib  
+Time-Series Econometrics • State-Space Models • Latent Variable Modeling
+
+---
+
+## 📌 Context
+
+This project complements my broader work in:
+
+- econometric forecasting
+- mixed-frequency modeling
+- reinforcement learning for portfolio management
+- systematic trading strategies
+
+It demonstrates advanced likelihood-based time-series modeling and 
+latent state estimation techniques frequently used in macroeconometrics 
+and quantitative finance.
