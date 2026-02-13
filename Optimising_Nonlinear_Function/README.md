@@ -34,7 +34,7 @@ using multipliers, enabling efficient approximation of lower bounds.
 
 ## ⚙️ Implemented Functions
 
-### 🔹 `CalculateLagrangian`
+### 🔹 CalculateLagrangian
 ```matlab
 [obj_lagrange, x_lagrange] = CalculateLagrangian(c, A, lambda)
 ```
